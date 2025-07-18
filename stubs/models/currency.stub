@@ -1,0 +1,82 @@
+{{#var modelFileName = 'app/models/currency.ts'}}
+{{{ exports([modelFileName]) }}}
+---
+import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { DateTime } from 'luxon'
+
+/**
+ * Currency model for storing exchange rates
+ */
+export default class Currency extends BaseModel {
+  public static table = 'currencies'
+
+  @column({ isPrimary: true })
+  declare id: number
+
+  /**
+   * Currency code (e.g., USD, EUR, GBP)
+   */
+  @column()
+  declare code: string
+
+  /**
+   * Exchange rate relative to base currency
+   */
+  @column()
+  declare rate: number
+
+  /**
+   * Base currency (e.g., USD)
+   */
+  @column()
+  declare base: string
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+
+  /**
+   * Get exchange rate for a specific currency pair
+   */
+  public static async getRate(from: string, to: string): Promise<number | null> {
+    if (from === to) return 1
+
+    // Try direct rate
+    const directRate = await this.query()
+      .where('code', to)
+      .where('base', from)
+      .first()
+
+    if (directRate) {
+      return directRate.rate
+    }
+
+    // Try inverse rate
+    const inverseRate = await this.query()
+      .where('code', from)
+      .where('base', to)
+      .first()
+
+    if (inverseRate) {
+      return 1 / inverseRate.rate
+    }
+
+    return null
+  }
+
+  /**
+   * Get all rates for a base currency
+   */
+  public static async getRatesForBase(base: string = 'USD') {
+    const rates = await this.query().where('base', base)
+    
+    const result: Record<string, number> = {}
+    for (const rate of rates) {
+      result[rate.code] = rate.rate
+    }
+    
+    return result
+  }
+}

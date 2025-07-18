@@ -1,0 +1,101 @@
+{{#var configFileName = 'config/currency.ts'}}
+{{{ exports([configFileName]) }}}
+---
+import env from '#start/env'
+import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
+
+const currencyConfig = defineConfig({
+  /*
+  |--------------------------------------------------------------------------
+  | Default Provider
+  |--------------------------------------------------------------------------
+  |
+  | The default currency provider to use. You can switch between providers
+  | at runtime using the currency.use() method.
+  |
+  */
+  defaultProvider: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
+
+  /*
+  |--------------------------------------------------------------------------
+  | Provider Configurations
+  |--------------------------------------------------------------------------
+  |
+  | Configure each currency provider. You can enable/disable providers by
+  | commenting out their configuration.
+  |
+  */
+  providers: {
+    /*
+    |--------------------------------------------------------------------------
+    | Database Provider
+    |--------------------------------------------------------------------------
+    |
+    | Uses your local database to store and retrieve exchange rates.
+    | Requires a Currency model and proper database setup.
+    |
+    */
+    database: exchanges.database({
+      model: () => import('#models/currency'),
+      columns: {
+        code: 'code',           // Currency code column (USD, EUR, etc.)
+        rate: 'rate',           // Exchange rate column
+        base: 'base',           // Base currency column
+        updatedAt: 'updated_at' // Updated timestamp column
+      },
+      cache: cache({
+        store: 'redis',         // 'redis' for @adonisjs/redis, 'cache' for @adonisjs/cache
+        ttl: 3600,              // 1 hour
+        prefix: 'currency'      // Cache key prefix
+      })
+    }),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Finance Provider
+    |--------------------------------------------------------------------------
+    |
+    | Free provider using Google Finance API. No API key required.
+    | Good for development and testing.
+    |
+    */
+    google: exchanges.google({
+      base: env.get('CURRENCY_BASE', 'USD'),
+      timeout: 5000
+    }),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fixer.io Provider
+    |--------------------------------------------------------------------------
+    |
+    | Requires API key from fixer.io. Provides accurate and up-to-date
+    | exchange rates. Uncomment and configure if you have an API key.
+    |
+    */
+    // fixer: exchanges.fixer({
+    //   accessKey: env.get('FIXER_API_KEY'),
+    //   base: env.get('CURRENCY_BASE', 'EUR'),
+    //   timeout: 10000
+    // })
+  },
+
+
+})
+
+export default currencyConfig
+
+/*
+|--------------------------------------------------------------------------
+| Type Augmentation
+|--------------------------------------------------------------------------
+|
+| Augment the container types to include the currency service.
+| This provides better IntelliSense and type safety.
+|
+*/
+declare module '@adonisjs/core/types' {
+  interface ContainerBindings {
+    currency: Awaited<ReturnType<typeof import('@mixxtor/currencyx-js').createCurrency>>
+  }
+}

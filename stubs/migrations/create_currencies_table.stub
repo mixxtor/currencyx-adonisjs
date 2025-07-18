@@ -1,0 +1,46 @@
+{{#var migrationFileName = migration.fileName}}
+{{{ exports([`database/migrations/${migrationFileName}`]) }}}
+---
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'currencies'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments('id')
+      
+      /**
+       * Currency code (e.g., USD, EUR, GBP)
+       */
+      table.string('code', 3).notNullable()
+      
+      /**
+       * Exchange rate relative to base currency
+       */
+      table.decimal('rate', 15, 8).notNullable()
+      
+      /**
+       * Base currency (e.g., USD)
+       */
+      table.string('base', 3).defaultTo('USD')
+      
+      /**
+       * Timestamps
+       */
+      table.timestamp('created_at')
+      table.timestamp('updated_at')
+      
+      /**
+       * Indexes for better query performance
+       */
+      table.index(['code'])
+      table.index(['base'])
+      table.unique(['code', 'base'])
+    })
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
