@@ -1,5 +1,6 @@
-{{#var configFileName = 'config/currency.ts'}}
-{{{ exports([configFileName]) }}}
+{{{
+  exports({ to: app.configPath('currency.ts') })
+}}}
 ---
 import env from '#start/env'
 import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'

@@ -1,7 +1,7 @@
 {
   "name": "@mixxtor/currencyx-adonisjs",
   "description": "AdonisJS integration for CurrencyX.js with database provider and cache support",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "node": ">=20.6.0"
   },
@@ -17,7 +17,8 @@
   ],
   "exports": {
     ".": "./build/index.js",
-    "./types": "./build/src/types.js"
+    "./types": "./build/src/types.js",
+    "./providers/currency_provider": "./build/providers/currency_provider.js"
   },
   "scripts": {
     "clean": "del-cli build",
