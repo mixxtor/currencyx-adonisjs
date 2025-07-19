@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3](https://github.com/mixxtor/currencyx-adonisjs/compare/currencyx-adonisjs-v1.0.2...currencyx-adonisjs-v1.0.3) (2025-07-19)
 
+### Fixed
+- Fixed stubs templates using `app.configPath()`, `app.modelPath()`, and `app.migrationsPath()`
+- Export `CurrencyService` types from `@mixxtor/currencyx-js`
+- Fixed currency provider service types from `@adonisjs/core/types`
 
 ## [1.0.2](https://github.com/mixxtor/currencyx-adonisjs/compare/currencyx-adonisjs-v1.0.1...currencyx-adonisjs-v1.0.2) (2025-07-19)
-
-## [1.0.1] - 2025-07-19
 
 ### Fixed
 - Fixed stub exports with proper `to` attribute for AdonisJS v6 compatibility
@@ -20,8 +23,6 @@ All notable changes to this project will be documented in this file.
 - Updated provider registration path to `@mixxtor/currencyx-adonisjs/providers/currency_provider`
 
 ## [1.0.0] - 2025-07-19
-
-## [1.0.0-beta.1] - 2025-07-19
 
 ### Added
 - Initial release of CurrencyX AdonisJS integration

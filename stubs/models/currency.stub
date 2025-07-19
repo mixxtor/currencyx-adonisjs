@@ -1,7 +1,6 @@
 {{{
   exports({ to: app.modelPath('currency.ts') })
 }}}
----
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 

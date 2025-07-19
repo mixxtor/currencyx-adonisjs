@@ -1,9 +1,8 @@
 {{{
   exports({ to: app.configPath('currency.ts') })
 }}}
----
 import env from '#start/env'
-import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
+import { defineConfig, exchanges, cache, type CurrencyService } from '@mixxtor/currencyx-adonisjs'
 
 const currencyConfig = defineConfig({
   /*
@@ -43,14 +42,11 @@ const currencyConfig = defineConfig({
         code: 'code',           // Currency code column (USD, EUR, etc.)
         rate: 'exchange_rate',  // Exchange rate column (relative to base currency)
       },
-      // Enable caching (optional)
       // cache: cache({
       //   enabled: true,          // Enable/disable caching
       //   ttl: 3600,              // 1 hour
       //   prefix: 'currency'      // Cache key prefix
       // })
-      // Or disable caching completely:
-      cache: false
     }),
 
     /*
@@ -99,6 +95,6 @@ export default currencyConfig
 */
 declare module '@adonisjs/core/types' {
   interface ContainerBindings {
-    currency: Awaited<ReturnType<typeof import('@mixxtor/currencyx-js').createCurrency>>
+    currency: CurrencyService
   }
 }

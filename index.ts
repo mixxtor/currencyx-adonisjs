@@ -38,6 +38,7 @@ export { DatabaseProvider } from './src/database_provider.js'
 // Re-export from core package
 export {
   createCurrency,
+  CurrencyService,
   type CurrencyCode,
   type ConversionResult,
   type ExchangeRatesResult,
