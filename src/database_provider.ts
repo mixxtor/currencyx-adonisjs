@@ -7,6 +7,8 @@ import type {
   CurrencyCode,
   ConversionResult,
   ExchangeRatesResult,
+  ConvertParams,
+  ExchangeRatesParams,
   HealthCheckResult,
 } from '@mixxtor/currencyx-js'
 import { BaseCurrencyProvider } from '@mixxtor/currencyx-js'
@@ -19,7 +21,9 @@ export class DatabaseProvider extends BaseCurrencyProvider {
 
   private model: typeof BaseModel | null = null
   private columns: Required<NonNullable<DatabaseConfig['columns']>>
+  private baseCurrency: string
   private cache?: CacheService
+  private cacheEnabled: boolean = false
   private cacheConfig?: {
     ttl: number
     prefix: string
@@ -30,13 +34,13 @@ export class DatabaseProvider extends BaseCurrencyProvider {
 
     this.columns = {
       code: config.columns?.code || 'code',
-      rate: config.columns?.rate || 'rate',
-      base: config.columns?.base || 'base',
-      updatedAt: config.columns?.updatedAt || 'updated_at',
+      rate: config.columns?.rate || 'exchange_rate',
     }
 
+    this.baseCurrency = config.base || 'USD'
+
     // Setup cache if configured
-    if (config.cache && typeof config.cache === 'object') {
+    if (config.cache !== false && config.cache) {
       this.setupCache(config.cache, app)
     }
 
@@ -50,32 +54,26 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   private async setupCache(cacheConfig: CacheConfig, app?: ApplicationService): Promise<void> {
     if (!app) return
 
+    // Check if cache is enabled
+    this.cacheEnabled = cacheConfig.enabled !== false // Default to true
+
+    if (!this.cacheEnabled) {
+      return
+    }
+
     try {
       this.cacheConfig = {
         ttl: cacheConfig.ttl || 3600,
         prefix: cacheConfig.prefix || 'currency',
       }
 
-      const store = cacheConfig.store || 'redis'
-
-      if (store === 'cache') {
-        // Try to use @adonisjs/cache first
-        try {
-          const cache = await app.container.make('cache.manager')
-          this.cache = cache
-        } catch {
-          // Fallback to direct redis if cache not available
-          const redis = await app.container.make('redis')
-          this.cache = redis
-        }
-      } else {
-        // Use @adonisjs/redis directly
-        const redis = await app.container.make('redis')
-        this.cache = redis
-      }
+      // Use @adonisjs/cache
+      const cacheManager = await app.container.make('cache')
+      this.cache = cacheManager
     } catch (error) {
       // Cache is optional, continue without it
       console.warn('Cache setup failed, continuing without cache:', error.message)
+      this.cacheEnabled = false
     }
   }
 
@@ -112,7 +110,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Get data from cache
    */
   private async getFromCache<T>(key: string): Promise<T | null> {
-    if (!this.cache) return null
+    if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return null
 
     try {
       const cacheKey = this.getCacheKey(key)
@@ -128,7 +126,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Set data to cache
    */
   private async setToCache<T>(key: string, value: T): Promise<void> {
-    if (!this.cache || !this.cacheConfig) return
+    if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return
 
     try {
       const cacheKey = this.getCacheKey(key)
@@ -142,7 +140,8 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Convert currency using database rates
    */
-  async convert(amount: number, from: CurrencyCode, to: CurrencyCode): Promise<ConversionResult> {
+  async convert(params: ConvertParams): Promise<ConversionResult> {
+    const { amount, from, to } = params
     if (from === to) {
       return {
         success: true,
@@ -192,8 +191,10 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Get latest rates (required abstract method)
    */
-  async latestRates(symbols?: CurrencyCode[]): Promise<ExchangeRatesResult> {
-    return this.getExchangeRates(this.base, symbols)
+  async latestRates(params?: ExchangeRatesParams): Promise<ExchangeRatesResult> {
+    const symbols = params?.symbols
+    const base = params?.base || this.base
+    return this.getExchangeRates(base, symbols)
   }
 
   /**
@@ -209,46 +210,68 @@ export class DatabaseProvider extends BaseCurrencyProvider {
 
   /**
    * Get exchange rate between two currencies
+   * Logic: all rates are stored relative to base currency (e.g., USD)
    */
   private async getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
     const Model = await this.getModel()
 
-    // Try direct rate first (from -> to)
-    const directRate = (await Model.query()
-      .where(this.columns.code, to)
-      .where(this.columns.base, from)
-      .first()) as CurrencyRecord | null
-
-    if (directRate && directRate[this.columns.rate]) {
-      return Number(directRate[this.columns.rate])
+    // Handle base currency conversions
+    if (from === this.baseCurrency && to === this.baseCurrency) {
+      return 1.0
     }
 
-    // Try inverse rate (to -> from)
-    const inverseRate = (await Model.query()
+    if (from === this.baseCurrency) {
+      // Converting from base currency to target currency
+      const toRate = (await Model.query()
+        .where(this.columns.code, to)
+        .first()) as CurrencyRecord | null
+
+      if (!toRate || !toRate[this.columns.rate]) {
+        throw new Error(`Exchange rate not found for currency: ${to}`)
+      }
+
+      return Number(toRate[this.columns.rate])
+    }
+
+    if (to === this.baseCurrency) {
+      // Converting from target currency to base currency
+      const fromRate = (await Model.query()
+        .where(this.columns.code, from)
+        .first()) as CurrencyRecord | null
+
+      if (!fromRate || !fromRate[this.columns.rate]) {
+        throw new Error(`Exchange rate not found for currency: ${from}`)
+      }
+
+      return 1 / Number(fromRate[this.columns.rate])
+    }
+
+    // Cross rate conversion (neither is base currency)
+    const fromRate = (await Model.query()
       .where(this.columns.code, from)
-      .where(this.columns.base, to)
       .first()) as CurrencyRecord | null
 
-    if (inverseRate && inverseRate[this.columns.rate]) {
-      return 1 / Number(inverseRate[this.columns.rate])
-    }
-
-    // Try cross rate via base currency (USD typically)
-    const fromToBase = (await Model.query()
-      .where(this.columns.code, from)
-      .first()) as CurrencyRecord | null
-
-    const toToBase = (await Model.query()
+    const toRate = (await Model.query()
       .where(this.columns.code, to)
       .first()) as CurrencyRecord | null
 
-    if (fromToBase && toToBase && fromToBase[this.columns.rate] && toToBase[this.columns.rate]) {
-      const fromRate = Number(fromToBase[this.columns.rate])
-      const toRate = Number(toToBase[this.columns.rate])
-      return toRate / fromRate
+    if (!fromRate || !fromRate[this.columns.rate]) {
+      throw new Error(`Exchange rate not found for currency: ${from}`)
     }
 
-    throw new Error(`Exchange rate not found for ${from} to ${to}`)
+    if (!toRate || !toRate[this.columns.rate]) {
+      throw new Error(`Exchange rate not found for currency: ${to}`)
+    }
+
+    // Calculate cross rate: to_rate / from_rate
+    const fromRateValue = Number(fromRate[this.columns.rate])
+    const toRateValue = Number(toRate[this.columns.rate])
+
+    if (fromRateValue === 0) {
+      throw new Error(`Invalid exchange rate for currency: ${from}`)
+    }
+
+    return toRateValue / fromRateValue
   }
 
   /**
@@ -263,9 +286,8 @@ export class DatabaseProvider extends BaseCurrencyProvider {
 
       let query = Model.query()
 
-      if (base) {
-        query = query.where(this.columns.base, base)
-      }
+      // Note: base parameter is ignored since we removed base column
+      // All rates are assumed to be relative to a common base currency
 
       if (symbols && symbols.length > 0) {
         query = query.whereIn(this.columns.code, symbols)

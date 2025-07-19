@@ -43,7 +43,7 @@ export default class CurrencyProvider {
 
       // Create currency service with all providers
       const currency = createCurrency({
-        defaultProvider: config.defaultProvider as any,
+        default: config.default as any,
         providers,
       })
 

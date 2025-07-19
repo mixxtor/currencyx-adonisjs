@@ -2,7 +2,7 @@
  * Configuration helpers for CurrencyX AdonisJS
  */
 
-import type { DatabaseConfig, CacheConfig, CurrencyConfig } from './types.js'
+import type { DatabaseConfig, CurrencyConfig, CacheConfig } from './types.js'
 
 /**
  * Define database provider configuration
@@ -14,11 +14,10 @@ export function database(config: DatabaseConfig): DatabaseConfig {
 
   return {
     model: config.model,
+    base: config.base || 'USD',
     columns: {
       code: 'code',
-      rate: 'rate',
-      base: 'base',
-      updatedAt: 'updated_at',
+      rate: 'exchange_rate',
       ...config.columns,
     },
     cache: config.cache,
@@ -55,7 +54,7 @@ export function fixer(config: { accessKey: string; base?: string; timeout?: numb
  */
 export function cache(config: CacheConfig = {}): CacheConfig {
   return {
-    store: config.store || 'redis',
+    enabled: config.enabled !== false, // Default to true
     ttl: config.ttl || 3600, // 1 hour
     prefix: config.prefix || 'currency',
   }

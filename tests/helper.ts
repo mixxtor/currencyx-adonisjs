@@ -13,7 +13,6 @@ import { redisDriver } from 'bentocache/drivers/redis'
 import { memoryDriver } from 'bentocache/drivers/memory'
 import { IgnitorFactory } from '@adonisjs/core/factories'
 import { AppEnvironments } from '@adonisjs/core/types/app'
-import { defineConfig as defineRedisConfig } from '@adonisjs/redis'
 import { defineConfig as defineLucidConfig } from '@adonisjs/lucid'
 import { defineConfig as defineCacheConfig, drivers, store } from '@adonisjs/cache'
 
@@ -44,7 +43,6 @@ export async function setupApp(
   env?: AppEnvironments,
   config: {
     database?: ReturnType<typeof defineLucidConfig>
-    redis?: ReturnType<typeof defineRedisConfig>
     cache?: ReturnType<typeof defineCacheConfig>
     currency?: ReturnType<typeof defineConfig>
   } = {}
@@ -66,12 +64,6 @@ export async function setupApp(
               },
             },
           }),
-        redis:
-          config.redis ||
-          defineRedisConfig({
-            connection: 'local',
-            connections: { local: { host: '127.0.0.1', port: 6379 } },
-          }),
         cache:
           config.cache ||
           defineCacheConfig({
@@ -84,7 +76,7 @@ export async function setupApp(
         currency:
           config.currency ||
           defineConfig({
-            defaultProvider: 'database',
+            default: 'database',
             providers: {
               database: {
                 model: () => Promise.resolve({} as any),
@@ -94,7 +86,6 @@ export async function setupApp(
       },
       rcFileContents: {
         providers: [
-          () => import('@adonisjs/redis/redis_provider'),
           () => import('@adonisjs/lucid/database_provider'),
           () => import('@adonisjs/cache/cache_provider'),
           () => import('../providers/currency_provider.js'),

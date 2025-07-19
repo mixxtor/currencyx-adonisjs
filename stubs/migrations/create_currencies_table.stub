@@ -9,34 +9,49 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      
+
       /**
        * Currency code (e.g., USD, EUR, GBP)
        */
-      table.string('code', 3).notNullable()
-      
+      table.string('code', 3).notNullable().unique()
+
       /**
-       * Exchange rate relative to base currency
+       * Currency name (e.g., US Dollar, Euro)
        */
-      table.decimal('rate', 15, 8).notNullable()
-      
+      table.string('name').notNullable()
+
       /**
-       * Base currency (e.g., USD)
+       * Currency symbol (e.g., $, €, £)
        */
-      table.string('base', 3).defaultTo('USD')
-      
+      table.string('symbol').notNullable()
+
+      /**
+       * Countries using this currency (JSON array)
+       */
+      table.json('countries').nullable()
+
+      /**
+       * Exchange rate relative to base currency (e.g., USD)
+       * For USD itself, rate should be 1.0
+       */
+      table.decimal('exchange_rate', 15, 8).notNullable()
+
+      /**
+       * Currency status (active/inactive)
+       */
+      table.boolean('status').defaultTo(true)
+
       /**
        * Timestamps
        */
       table.timestamp('created_at')
       table.timestamp('updated_at')
-      
+
       /**
        * Indexes for better query performance
        */
       table.index(['code'])
-      table.index(['base'])
-      table.unique(['code', 'base'])
+      table.index(['status'])
     })
   }
 

@@ -20,16 +20,42 @@ export default class Currency extends BaseModel {
   declare code: string
 
   /**
-   * Exchange rate relative to base currency
+   * Currency name (e.g., US Dollar, Euro)
    */
   @column()
-  declare rate: number
+  declare name: string
 
   /**
-   * Base currency (e.g., USD)
+   * Currency symbol (e.g., $, €, £)
    */
   @column()
-  declare base: string
+  declare symbol: string
+
+  /**
+   * Countries using this currency
+   */
+  @column({
+    prepare: (value) => (typeof value === 'object' ? JSON.stringify(value) : value),
+    consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare countries: string[]
+
+  /**
+   * Exchange rate relative to base currency (e.g., USD)
+   * For the base currency itself (e.g., USD), this should be 1.0
+   */
+  @column({
+    columnName: 'exchange_rate',
+    prepare: (value) => (typeof value === 'string' ? Number.parseFloat(value) : value),
+    consume: (value) => (typeof value === 'string' ? Number.parseFloat(value) : value),
+  })
+  declare exchangeRate: number
+
+  /**
+   * Currency status (active/inactive)
+   */
+  @column()
+  declare status: boolean
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -39,44 +65,47 @@ export default class Currency extends BaseModel {
 
   /**
    * Get exchange rate for a specific currency pair
+   * Logic: assumes all rates are relative to a common base (e.g., USD)
    */
-  public static async getRate(from: string, to: string): Promise<number | null> {
+  public static async getRate(from: string, to: string, baseCurrency: string = 'USD'): Promise<number | null> {
     if (from === to) return 1
 
-    // Try direct rate
-    const directRate = await this.query()
-      .where('code', to)
-      .where('base', from)
-      .first()
+    // Handle base currency conversions
+    if (from === baseCurrency && to === baseCurrency) return 1
 
-    if (directRate) {
-      return directRate.rate
+    if (from === baseCurrency) {
+      const toRate = await this.query().where('code', to).first()
+      return toRate ? toRate.exchangeRate : null
     }
 
-    // Try inverse rate
-    const inverseRate = await this.query()
-      .where('code', from)
-      .where('base', to)
-      .first()
-
-    if (inverseRate) {
-      return 1 / inverseRate.rate
+    if (to === baseCurrency) {
+      const fromRate = await this.query().where('code', from).first()
+      return fromRate ? 1 / fromRate.exchangeRate : null
     }
 
-    return null
+    // Cross rate conversion
+    const fromRate = await this.query().where('code', from).first()
+    const toRate = await this.query().where('code', to).first()
+
+    if (!fromRate || !toRate) {
+      return null
+    }
+
+    // Calculate cross rate: to_rate / from_rate
+    return toRate.exchangeRate / fromRate.exchangeRate
   }
 
   /**
-   * Get all rates for a base currency
+   * Get all available exchange rates
    */
-  public static async getRatesForBase(base: string = 'USD') {
-    const rates = await this.query().where('base', base)
-    
+  public static async getAllRates() {
+    const rates = await this.query().where('status', true)
+
     const result: Record<string, number> = {}
     for (const rate of rates) {
-      result[rate.code] = rate.rate
+      result[rate.code] = rate.exchangeRate
     }
-    
+
     return result
   }
 }

@@ -4,7 +4,7 @@ import { defineConfig, exchanges, database, google, fixer, cache } from '../src/
 test.group('Configuration Helpers', () => {
   test('defineConfig should return the same config', ({ assert }) => {
     const config = {
-      defaultProvider: 'database' as const,
+      default: 'database' as const,
       providers: {
         database: {
           model: () => Promise.resolve({} as any),
@@ -22,39 +22,41 @@ test.group('Configuration Helpers', () => {
     }, 'Database provider requires a model')
   })
 
-  test('database helper should set default columns', ({ assert }) => {
+  test('database helper should set default columns and base currency', ({ assert }) => {
     const mockModel = () => Promise.resolve({} as any)
     const config = database({ model: mockModel })
 
     assert.equal(config.model, mockModel)
+    assert.equal(config.base, 'USD')
     assert.deepEqual(config.columns, {
       code: 'code',
-      rate: 'rate',
-      base: 'base',
-      updatedAt: 'updated_at',
+      rate: 'exchange_rate',
     })
     assert.isUndefined(config.cache)
   })
 
-  test('database helper should merge custom columns and cache', ({ assert }) => {
+  test('database helper should merge custom config', ({ assert }) => {
     const mockModel = () => Promise.resolve({} as any)
-    const cacheConfig = { store: 'cache' as const, ttl: 1800 }
     const config = database({
       model: mockModel,
+      base: 'EUR',
       columns: {
         code: 'currency_code',
-        rate: 'exchange_rate',
+        rate: 'rate_value',
       },
-      cache: cacheConfig,
+      cache: cache(),
     })
 
+    assert.equal(config.base, 'EUR')
     assert.deepEqual(config.columns, {
       code: 'currency_code',
-      rate: 'exchange_rate',
-      base: 'base',
-      updatedAt: 'updated_at',
+      rate: 'rate_value',
     })
-    assert.deepEqual(config.cache, cacheConfig)
+    assert.deepEqual(config.cache, {
+      enabled: true,
+      ttl: 3600,
+      prefix: 'currency',
+    })
   })
 
   test('google helper should set defaults', ({ assert }) => {
@@ -98,7 +100,7 @@ test.group('Configuration Helpers', () => {
     const config = cache()
 
     assert.deepEqual(config, {
-      store: 'redis',
+      enabled: true,
       ttl: 3600,
       prefix: 'currency',
     })
@@ -106,13 +108,13 @@ test.group('Configuration Helpers', () => {
 
   test('cache helper should accept custom config', ({ assert }) => {
     const config = cache({
-      store: 'memory',
+      enabled: false,
       ttl: 1800,
       prefix: 'rates',
     })
 
     assert.deepEqual(config, {
-      store: 'memory',
+      enabled: false,
       ttl: 1800,
       prefix: 'rates',
     })

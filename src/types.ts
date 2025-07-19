@@ -22,6 +22,13 @@ export interface DatabaseConfig {
   model: () => typeof BaseModel | Promise<typeof BaseModel>
 
   /**
+   * Base currency - all exchange rates in database are relative to this currency
+   * @default 'USD'
+   * @example 'USD' // 1 USD = 0.85 EUR, 1 USD = 0.73 GBP
+   */
+  base?: string
+
+  /**
    * Column mapping for the currency table
    */
   columns?: {
@@ -33,25 +40,14 @@ export interface DatabaseConfig {
 
     /**
      * Exchange rate column
-     * @default 'rate'
+     * @default 'exchange_rate'
      */
     rate?: string
-
-    /**
-     * Base currency column (optional)
-     * @default 'base'
-     */
-    base?: string
-
-    /**
-     * Updated at timestamp column (optional)
-     * @default 'updated_at'
-     */
-    updatedAt?: string
   }
 
   /**
    * Cache configuration for this database provider
+   * @default false
    */
   cache?: CacheConfig | false
 }
@@ -61,12 +57,10 @@ export interface DatabaseConfig {
  */
 export interface CacheConfig {
   /**
-   * Cache store to use
-   * - 'redis': Use @adonisjs/redis directly
-   * - 'cache': Use @adonisjs/cache (if available)
-   * @default 'redis'
+   * Enable or disable caching
+   * @default true
    */
-  store?: 'redis' | 'cache' | string
+  enabled?: boolean
 
   /**
    * Cache TTL in seconds
@@ -88,7 +82,7 @@ export interface CurrencyConfig {
   /**
    * Default provider to use
    */
-  defaultProvider: 'database' | 'google' | 'fixer'
+  default: 'database' | 'google' | 'fixer'
 
   /**
    * Provider configurations

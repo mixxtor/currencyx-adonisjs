@@ -14,7 +14,7 @@ const currencyConfig = defineConfig({
   | at runtime using the currency.use() method.
   |
   */
-  defaultProvider: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
+  default: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
 
   /*
   |--------------------------------------------------------------------------
@@ -37,17 +37,19 @@ const currencyConfig = defineConfig({
     */
     database: exchanges.database({
       model: () => import('#models/currency'),
+      base: 'USD',    // Base currency for all exchange rates
       columns: {
         code: 'code',           // Currency code column (USD, EUR, etc.)
-        rate: 'rate',           // Exchange rate column
-        base: 'base',           // Base currency column
-        updatedAt: 'updated_at' // Updated timestamp column
+        rate: 'exchange_rate',  // Exchange rate column (relative to base currency)
       },
-      cache: cache({
-        store: 'redis',         // 'redis' for @adonisjs/redis, 'cache' for @adonisjs/cache
-        ttl: 3600,              // 1 hour
-        prefix: 'currency'      // Cache key prefix
-      })
+      // Enable caching (optional)
+      // cache: cache({
+      //   enabled: true,          // Enable/disable caching
+      //   ttl: 3600,              // 1 hour
+      //   prefix: 'currency'      // Cache key prefix
+      // })
+      // Or disable caching completely:
+      cache: false
     }),
 
     /*

@@ -41,23 +41,24 @@ import env from '#start/env'
 import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
 
 export default defineConfig({
-  defaultProvider: 'database',
+  default: 'database',
 
   providers: {
     // Database provider using Lucid ORM
     database: exchanges.database({
       model: () => import('#models/currency'),
+      base: 'USD', // Base currency - all exchange rates are relative to this
       columns: {
         code: 'code', // Currency code (USD, EUR, etc.)
-        rate: 'rate', // Exchange rate
-        base: 'base', // Base currency
-        updatedAt: 'updated_at', // Timestamp
+        rate: 'exchange_rate', // Exchange rate column name
       },
       cache: cache({
-        store: 'redis', // 'redis' for @adonisjs/redis, 'cache' for @adonisjs/cache
+        enabled: true, // Enable/disable caching
         ttl: 3600, // 1 hour
         prefix: 'currency', // Cache key prefix
       }),
+      // Or disable caching:
+      // cache: false,
     }),
 
     // External providers (optional)
@@ -73,12 +74,8 @@ export default defineConfig({
     }),
   },
 
-  // Optional caching
-  cache: cache({
-    store: 'redis',
-    ttl: 3600, // 1 hour
-    prefix: 'currency',
-  }),
+  // Global cache configuration (optional)
+  // cache: cache(), // Enable global caching
 })
 ```
 
@@ -118,7 +115,7 @@ export default class CurrencyController {
   async convert({ request, response }: HttpContext) {
     const currency = await app.container.make('currency')
 
-    const result = await currency.convert(100, 'USD', 'EUR')
+    const result = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
     return response.json({
       amount: result.amount, // 100
@@ -139,11 +136,11 @@ const currency = await app.container.make('currency')
 
 // Use database provider
 currency.use('database')
-const dbResult = await currency.convert(100, 'USD', 'EUR')
+const dbResult = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
 // Switch to Google Finance
 currency.use('google')
-const googleResult = await currency.convert(100, 'USD', 'EUR')
+const googleResult = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
 // Get available providers
 const providers = currency.getAvailableProviders()
@@ -201,23 +198,63 @@ export default defineConfig({
     database: exchanges.database({
       model: () => import('#models/currency'),
       cache: cache({
-        store: 'redis', // 'redis' or 'cache'
+        enabled: true, // Enable/disable caching
         ttl: 3600, // 1 hour
         prefix: 'currency', // cache key prefix
       }),
-      // Disable caching for this provider
-      // cache: false
+      // Or disable caching completely:
+      // cache: false,
     }),
   },
 })
 ```
 
-### Cache Store Options:
+### Cache Configuration Options:
 
-- **`'redis'`**: Uses `@adonisjs/redis` directly (default)
-- **`'cache'`**: Uses `@adonisjs/cache` if available, falls back to redis
+- **`enabled`**: Enable or disable caching (default: `true`)
+- **`ttl`**: Cache TTL in seconds (default: `3600` - 1 hour)
+- **`prefix`**: Cache key prefix (default: `'currency'`)
+- **`false`**: Disable caching completely
 
-The package automatically detects available services and falls back gracefully.
+### Cache Behavior:
+
+- **When `enabled: false`**: Always queries database directly, no caching
+- **When `enabled: true`**: Caches exchange rates using `@adonisjs/cache` to improve performance
+- **Error handling**: Cache errors don't break functionality, falls back to database
+
+### Database Schema:
+
+The package expects a table structure matching your existing currency schema:
+
+```sql
+CREATE TABLE currencies (
+  id INTEGER PRIMARY KEY,
+  code VARCHAR(3) UNIQUE NOT NULL,        -- Currency code (USD, EUR, etc.)
+  name VARCHAR(255) NOT NULL,             -- Currency name (US Dollar, Euro, etc.)
+  symbol VARCHAR(10) NOT NULL,            -- Currency symbol ($, €, £, etc.)
+  countries JSON,                         -- Countries using this currency
+  exchange_rate DECIMAL(15,8) NOT NULL,   -- Exchange rate relative to base currency
+  status BOOLEAN DEFAULT TRUE,            -- Currency status (active/inactive)
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+**Example data (matching your real schema):**
+```sql
+INSERT INTO currencies (code, name, symbol, countries, exchange_rate, status) VALUES
+  ('USD', 'US Dollar', '$', '["US"]', 1.0, true),
+  ('EUR', 'Euro', '€', '["DE","FR","IT","ES"]', 0.85, true),
+  ('GBP', 'British Pound', '£', '["GB"]', 0.73, true),
+  ('AUD', 'Australian Dollar', 'AU$', '["AU","CX","CC","HM","KI","NR","NF","TV"]', 1.51, true);
+```
+
+### Base Currency Concept:
+
+- **All exchange rates are stored relative to a single base currency** (default: USD)
+- **Base currency rate = 1.0** (e.g., USD = 1.0)
+- **Other currencies** store their rate relative to base (e.g., EUR = 0.85 means 1 USD = 0.85 EUR)
+- **Cross-rate calculations** are handled automatically (e.g., EUR to GBP = GBP_rate / EUR_rate)
 
 Cache keys follow the pattern: `currency:rate:USD:EUR`
 
