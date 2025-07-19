@@ -264,6 +264,36 @@ Cache keys follow the pattern: `currency:rate:USD:EUR`
 npm test
 ```
 
+## 🚀 Release Process
+
+This package uses `release-it` for automated releases:
+
+```bash
+# Patch release (1.0.0 → 1.0.1)
+npm run release:patch
+
+# Minor release (1.0.0 → 1.1.0)
+npm run release:minor
+
+# Major release (1.0.0 → 2.0.0)
+npm run release:major
+
+# Pre-release versions
+npm run release:beta   # 1.0.0 → 1.0.1-beta.0
+npm run release:alpha  # 1.0.0 → 1.0.1-alpha.0
+
+# Dry run (test without actually releasing)
+npm run release:dry
+```
+
+The release process automatically:
+- ✅ Runs linting and tests
+- 📦 Builds the package
+- 📝 Updates CHANGELOG.md
+- 🏷️ Creates git tag
+- 📤 Publishes to npm
+- 🎉 Creates GitHub release
+
 ## 📄 License
 
 MIT License - see LICENSE file for details.

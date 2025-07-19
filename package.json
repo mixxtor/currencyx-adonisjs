@@ -1,7 +1,7 @@
 {
   "name": "@mixxtor/currencyx-adonisjs",
   "description": "AdonisJS integration for CurrencyX.js with database provider and cache support",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.1",
   "engines": {
     "node": ">=20.6.0"
   },
@@ -31,7 +31,13 @@
     "prebuild": "npm run lint && npm run clean",
     "build": "tsc",
     "postbuild": "npm run copy:templates",
-    "release": "np",
+    "release": "release-it",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major",
+    "release:beta": "release-it --preRelease=beta",
+    "release:alpha": "release-it --preRelease=alpha",
+    "release:dry": "release-it --dry-run",
     "version": "npm run build",
     "prepublishOnly": "npm run build"
   },
@@ -57,6 +63,7 @@
     "@adonisjs/tsconfig": "^1.4.1",
     "@japa/assert": "^4.0.1",
     "@japa/runner": "^4.2.0",
+    "@release-it/conventional-changelog": "^10.0.1",
     "@swc/core": "^1.13.0",
     "@types/node": "^24.0.15",
     "better-sqlite3": "^12.2.0",
@@ -64,8 +71,8 @@
     "copyfiles": "^2.4.1",
     "del-cli": "^6.0.0",
     "eslint": "^9.31.0",
-    "np": "^10.2.0",
     "prettier": "^3.6.2",
+    "release-it": "^19.0.4",
     "sqlite3": "^5.1.7",
     "ts-node-maintained": "^10.9.5",
     "typescript": "^5.8.3"

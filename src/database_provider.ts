@@ -44,8 +44,11 @@ export class DatabaseProvider extends BaseCurrencyProvider {
       this.setupCache(config.cache, app)
     }
 
-    // Load model asynchronously
-    this.loadModel(config.model)
+    // Load model asynchronously (handle rejection to prevent unhandled promise rejection)
+    this.loadModel(config.model).catch((error) => {
+      // Error will be handled when methods are called
+      console.warn('Failed to load currency model:', error.message)
+    })
   }
 
   /**
