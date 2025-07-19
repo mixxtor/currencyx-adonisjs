@@ -21,7 +21,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
 
   private model: typeof BaseModel | null = null
   private columns: Required<NonNullable<DatabaseConfig['columns']>>
-  private baseCurrency: string
+
   private cache?: CacheService
   private cacheEnabled: boolean = false
   private cacheConfig?: {
@@ -29,7 +29,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     prefix: string
   }
 
-  constructor(config: DatabaseConfig, app?: any) {
+  constructor(config: DatabaseConfig, app?: ApplicationService) {
     super()
 
     this.columns = {
@@ -37,15 +37,15 @@ export class DatabaseProvider extends BaseCurrencyProvider {
       rate: config.columns?.rate || 'exchange_rate',
     }
 
-    this.baseCurrency = config.base || 'USD'
+    this.base = config.base || 'USD'
 
     // Setup cache if configured
     if (config.cache !== false && config.cache) {
-      this.setupCache(config.cache, app)
+      this.#setupCache(config.cache, app)
     }
 
     // Load model asynchronously (handle rejection to prevent unhandled promise rejection)
-    this.loadModel(config.model).catch((error) => {
+    this.#loadModel(config.model).catch((error) => {
       // Error will be handled when methods are called
       console.warn('Failed to load currency model:', error.message)
     })
@@ -54,7 +54,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Setup cache based on configuration
    */
-  private async setupCache(cacheConfig: CacheConfig, app?: ApplicationService): Promise<void> {
+  async #setupCache(cacheConfig: CacheConfig, app?: ApplicationService): Promise<void> {
     if (!app) return
 
     // Check if cache is enabled
@@ -83,7 +83,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Load the Lucid model
    */
-  private async loadModel(modelLoader: DatabaseConfig['model']): Promise<void> {
+  async #loadModel(modelLoader: DatabaseConfig['model']): Promise<void> {
     try {
       this.model = await modelLoader()
     } catch (error) {
@@ -94,7 +94,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Get the loaded model instance
    */
-  private async getModel(): Promise<typeof BaseModel> {
+  async #getModel(): Promise<typeof BaseModel> {
     if (!this.model) {
       throw new Error('Currency model not loaded. Make sure the model is properly configured.')
     }
@@ -104,7 +104,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Generate cache key
    */
-  private getCacheKey(key: string): string {
+  #getCacheKey(key: string): string {
     const prefix = this.cacheConfig?.prefix || 'currency'
     return `${prefix}:${key}`
   }
@@ -112,11 +112,11 @@ export class DatabaseProvider extends BaseCurrencyProvider {
   /**
    * Get data from cache
    */
-  private async getFromCache<T>(key: string): Promise<T | null> {
+  async #getFromCache<T>(key: string): Promise<T | null> {
     if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return null
 
     try {
-      const cacheKey = this.getCacheKey(key)
+      const cacheKey = this.#getCacheKey(key)
       return await this.cache.get({ key: cacheKey })
     } catch (error) {
       // Cache errors should not break the main functionality
@@ -132,7 +132,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return
 
     try {
-      const cacheKey = this.getCacheKey(key)
+      const cacheKey = this.#getCacheKey(key)
       await this.cache.set({ key: cacheKey, value, ttl: this.cacheConfig.ttl })
     } catch (error) {
       // Cache errors should not break the main functionality
@@ -158,11 +158,11 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     try {
       // Try cache first
       const cacheKey = `rate:${from}:${to}`
-      let rate = await this.getFromCache<number>(cacheKey)
+      let rate = await this.#getFromCache<number>(cacheKey)
 
       if (!rate) {
         // Get rate from database
-        rate = await this.getExchangeRate(from, to)
+        rate = await this.#getExchangeRate(from, to)
 
         // Cache the rate
         await this.setToCache(cacheKey, rate)
@@ -205,7 +205,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    */
   async getConvertRate(from: CurrencyCode, to: CurrencyCode): Promise<number | undefined> {
     try {
-      return await this.getExchangeRate(from, to)
+      return await this.#getExchangeRate(from, to)
     } catch {
       return undefined
     }
@@ -215,15 +215,15 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Get exchange rate between two currencies
    * Logic: all rates are stored relative to base currency (e.g., USD)
    */
-  private async getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
-    const Model = await this.getModel()
+  async #getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
+    const Model = await this.#getModel()
 
     // Handle base currency conversions
-    if (from === this.baseCurrency && to === this.baseCurrency) {
+    if (from === this.base && to === this.base) {
       return 1.0
     }
 
-    if (from === this.baseCurrency) {
+    if (from === this.base) {
       // Converting from base currency to target currency
       const toRate = (await Model.query()
         .where(this.columns.code, to)
@@ -236,7 +236,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
       return Number(toRate[this.columns.rate])
     }
 
-    if (to === this.baseCurrency) {
+    if (to === this.base) {
       // Converting from target currency to base currency
       const fromRate = (await Model.query()
         .where(this.columns.code, from)
@@ -285,7 +285,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     symbols?: CurrencyCode[]
   ): Promise<ExchangeRatesResult> {
     try {
-      const Model = await this.getModel()
+      const Model = await this.#getModel()
 
       let query = Model.query()
 
@@ -338,7 +338,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     const startTime = Date.now()
 
     try {
-      const Model = await this.getModel()
+      const Model = await this.#getModel()
 
       // Try a simple query to check database connectivity
       await Model.query().limit(1).exec()

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import { DatabaseProvider } from '../src/database_provider.js'
 import { cache } from '../src/config.js'
+import type { ApplicationService } from '@adonisjs/core/types'
 
 // Mock Model that simulates Lucid BaseModel behavior
 const MockModel = {
@@ -206,7 +207,7 @@ test.group('DatabaseProvider Simple', () => {
   })
 
   test('should work with cache when enabled', async ({ assert }) => {
-    const mockApp = {
+    const mockApp: ApplicationService = {
       container: {
         make: async (service: string) => {
           if (service === 'cache') {
@@ -218,7 +219,7 @@ test.group('DatabaseProvider Simple', () => {
           throw new Error('Service not found')
         },
       },
-    }
+    } as any
 
     const config = {
       model: () => Promise.resolve(MockModel as any),

@@ -4,6 +4,11 @@
 
 import type { BaseModel } from '@adonisjs/lucid/orm'
 import type { CacheService } from '@adonisjs/cache/types'
+import {
+  createCurrency,
+  type CurrencyProviderContract,
+  type CurrencyProviders,
+} from '@mixxtor/currencyx-js'
 
 // // Cache manager interface (simplified to avoid dependency issues)
 // interface CacheStore {
@@ -82,23 +87,12 @@ export interface CurrencyConfig {
   /**
    * Default provider to use
    */
-  default: 'database' | 'google' | 'fixer'
+  default: keyof CurrencyProviders
 
   /**
    * Provider configurations
    */
-  providers: {
-    database?: DatabaseConfig
-    google?: {
-      base?: string
-      timeout?: number
-    }
-    fixer?: {
-      accessKey: string
-      base?: string
-      timeout?: number
-    }
-  }
+  providers: Record<keyof CurrencyProviders, CurrencyProviderContract>
 }
 
 /**
@@ -108,7 +102,6 @@ export interface CurrencyRecord {
   [key: string]: any
   code?: string
   rate?: number
-  base?: string
   updated_at?: Date
 }
 
@@ -122,6 +115,6 @@ export interface CacheManager extends CacheStore {}
  */
 declare module '@adonisjs/core/types' {
   interface ContainerBindings {
-    currency: any
+    currency: Awaited<ReturnType<typeof createCurrency>>
   }
 }

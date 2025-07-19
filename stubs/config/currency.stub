@@ -2,7 +2,7 @@
   exports({ to: app.configPath('currency.ts') })
 }}}
 import env from '#start/env'
-import { defineConfig, exchanges, cache, type CurrencyService } from '@mixxtor/currencyx-adonisjs'
+import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
 
 const currencyConfig = defineConfig({
   /*
@@ -83,18 +83,3 @@ const currencyConfig = defineConfig({
 })
 
 export default currencyConfig
-
-/*
-|--------------------------------------------------------------------------
-| Type Augmentation
-|--------------------------------------------------------------------------
-|
-| Augment the container types to include the currency service.
-| This provides better IntelliSense and type safety.
-|
-*/
-declare module '@adonisjs/core/types' {
-  interface ContainerBindings {
-    currency: CurrencyService
-  }
-}

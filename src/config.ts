@@ -2,51 +2,62 @@
  * Configuration helpers for CurrencyX AdonisJS
  */
 
+import {
+  FixerProvider,
+  GoogleFinanceProvider,
+  type FixerConfig,
+  type GoogleFinanceConfig,
+} from '@mixxtor/currencyx-js'
 import type { DatabaseConfig, CurrencyConfig, CacheConfig } from './types.js'
+import { DatabaseProvider } from './database_provider.js'
+import { ApplicationService } from '@adonisjs/core/types'
 
 /**
  * Define database provider configuration
  */
-export function database(config: DatabaseConfig): DatabaseConfig {
+export function database(config: DatabaseConfig, app?: ApplicationService): DatabaseProvider {
   if (!config.model) {
     throw new Error('Database provider requires a model')
   }
 
-  return {
-    model: config.model,
-    base: config.base || 'USD',
-    columns: {
-      code: 'code',
-      rate: 'exchange_rate',
-      ...config.columns,
+  return new DatabaseProvider(
+    {
+      model: config.model,
+      base: config.base || 'USD',
+      columns: {
+        code: 'code',
+        rate: 'exchange_rate',
+        ...config.columns,
+      },
+      cache: config.cache,
     },
-    cache: config.cache,
-  }
+    app
+  )
 }
 
 /**
  * Define Google Finance provider configuration
  */
-export function google(config: { base?: string; timeout?: number } = {}) {
-  return {
+export function google(config: GoogleFinanceConfig = {}): GoogleFinanceProvider {
+  return new GoogleFinanceProvider({
     base: config.base || 'USD',
     timeout: config.timeout || 5000,
-  }
+  })
 }
 
 /**
  * Define Fixer.io provider configuration
  */
-export function fixer(config: { accessKey: string; base?: string; timeout?: number }) {
+export function fixer(config: FixerConfig): FixerProvider {
   if (!config.accessKey) {
     throw new Error('Fixer provider requires an accessKey')
   }
 
-  return {
+  return new FixerProvider({
     accessKey: config.accessKey,
-    base: config.base || 'EUR',
+    base: config.base || 'USD',
     timeout: config.timeout || 5000,
-  }
+  })
 }
 
 /**

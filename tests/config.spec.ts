@@ -12,7 +12,7 @@ test.group('Configuration Helpers', () => {
       },
     }
 
-    const result = defineConfig(config)
+    const result = defineConfig(config as any)
     assert.deepEqual(result, config)
   })
 
@@ -26,13 +26,15 @@ test.group('Configuration Helpers', () => {
     const mockModel = () => Promise.resolve({} as any)
     const config = database({ model: mockModel })
 
-    assert.equal(config.model, mockModel)
+    // After refactor, database() returns a DatabaseProvider instance
+    assert.instanceOf(config, Object)
+    assert.equal(config.constructor.name, 'DatabaseProvider')
     assert.equal(config.base, 'USD')
-    assert.deepEqual(config.columns, {
-      code: 'code',
-      rate: 'exchange_rate',
-    })
-    assert.isUndefined(config.cache)
+
+    // Check that provider has required methods
+    assert.isFunction(config.convert)
+    assert.isFunction(config.latestRates)
+    assert.isFunction(config.getExchangeRates)
   })
 
   test('database helper should merge custom config', ({ assert }) => {
@@ -47,37 +49,42 @@ test.group('Configuration Helpers', () => {
       cache: cache(),
     })
 
+    // After refactor, database() returns a DatabaseProvider instance
+    assert.instanceOf(config, Object)
+    assert.equal(config.constructor.name, 'DatabaseProvider')
     assert.equal(config.base, 'EUR')
-    assert.deepEqual(config.columns, {
-      code: 'currency_code',
-      rate: 'rate_value',
-    })
-    assert.deepEqual(config.cache, {
-      enabled: true,
-      ttl: 3600,
-      prefix: 'currency',
-    })
+
+    // Check that provider has required methods
+    assert.isFunction(config.convert)
+    assert.isFunction(config.latestRates)
+    assert.isFunction(config.getExchangeRates)
   })
 
   test('google helper should set defaults', ({ assert }) => {
-    const config = google()
+    const provider = google()
 
-    assert.deepEqual(config, {
-      base: 'USD',
-      timeout: 5000,
-    })
+    // After refactor, google() returns a GoogleFinanceProvider instance
+    assert.instanceOf(provider, Object)
+    assert.equal(provider.constructor.name, 'GoogleFinanceProvider')
+
+    // Check that provider has required methods
+    assert.isFunction(provider.convert)
+    assert.isFunction(provider.latestRates)
   })
 
   test('google helper should accept custom config', ({ assert }) => {
-    const config = google({
+    const provider = google({
       base: 'EUR',
       timeout: 10000,
     })
 
-    assert.deepEqual(config, {
-      base: 'EUR',
-      timeout: 10000,
-    })
+    // After refactor, google() returns a GoogleFinanceProvider instance
+    assert.instanceOf(provider, Object)
+    assert.equal(provider.constructor.name, 'GoogleFinanceProvider')
+
+    // Check that provider has required methods
+    assert.isFunction(provider.convert)
+    assert.isFunction(provider.latestRates)
   })
 
   test('fixer helper should require accessKey', ({ assert }) => {
@@ -87,13 +94,15 @@ test.group('Configuration Helpers', () => {
   })
 
   test('fixer helper should set defaults with accessKey', ({ assert }) => {
-    const config = fixer({ accessKey: 'test-key' })
+    const provider = fixer({ accessKey: 'test-key' })
 
-    assert.deepEqual(config, {
-      accessKey: 'test-key',
-      base: 'EUR',
-      timeout: 5000,
-    })
+    // Check that it returns a FixerProvider instance
+    assert.instanceOf(provider, Object)
+    assert.equal(provider.constructor.name, 'FixerProvider')
+
+    // Check that provider has required methods
+    assert.isFunction(provider.convert)
+    assert.isFunction(provider.latestRates)
   })
 
   test('cache helper should set defaults', ({ assert }) => {

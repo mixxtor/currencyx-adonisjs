@@ -80,7 +80,7 @@ export async function setupApp(
             providers: {
               database: {
                 model: () => Promise.resolve({} as any),
-              },
+              } as any,
             },
           }),
       },

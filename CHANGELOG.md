@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.0.4](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.0.3...v1.0.4) (2025-07-19)
+
+### Refactor
+- All helper functions (`google()`, `fixer()`, `database()`) now return fully initialized provider instances instead of configuration objects.
+- Providers now properly inherit from their base classes, improving type safety and code clarity.
+- The internal structure and API patterns are now consistent with the broader currencyx-js ecosystem.
+
+### Fixed
+- Fixed tests to check for provider instances instead of plain objects.
+- Removed `baseCurrency` property from `DatabaseProvider` and replaced all references with `this.base`.
+- Adjusted constructor and methods in `DatabaseProvider` to use the inherited `base` property.
+- Removed unnecessary checks for private properties in tests.
+
 ## [1.0.3](https://github.com/mixxtor/currencyx-adonisjs/compare/currencyx-adonisjs-v1.0.2...currencyx-adonisjs-v1.0.3) (2025-07-19)
 
 ### Fixed

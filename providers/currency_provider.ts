@@ -3,8 +3,11 @@
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
-import { createCurrency } from '@mixxtor/currencyx-js'
-import { DatabaseProvider } from '../src/database_provider.js'
+import {
+  createCurrency,
+  type CurrencyProviderContract,
+  type CurrencyProviders,
+} from '@mixxtor/currencyx-js'
 import type { CurrencyConfig } from '../src/types.js'
 
 export default class CurrencyProvider {
@@ -24,30 +27,17 @@ export default class CurrencyProvider {
       }
 
       // Build providers config dynamically
-      const providers: any = {}
+      const providers: Record<keyof CurrencyProviders, CurrencyProviderContract> = {}
 
-      // Add external providers
-      if (config.providers.google) {
-        providers.google = config.providers.google
-      }
-      if (config.providers.fixer) {
-        providers.fixer = config.providers.fixer
-      }
-
-      // Add database provider if configured
-      if (config.providers.database) {
-        // Create database provider instance with app context for cache setup
-        const databaseProvider = new DatabaseProvider(config.providers.database, this.app)
-        providers.database = databaseProvider
+      for (const providerName of Object.keys(config.providers)) {
+        providers[providerName] = config.providers[providerName]
       }
 
       // Create currency service with all providers
-      const currency = createCurrency({
-        default: config.default as any,
+      return createCurrency({
+        default: config.default,
         providers,
       })
-
-      return currency
     })
   }
 

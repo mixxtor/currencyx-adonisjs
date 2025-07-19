@@ -1,7 +1,7 @@
 module.exports = {
   git: {
-    commitMessage: 'chore: release currencyx-adonisjs v${version}',
-    tagName: 'currencyx-adonisjs-v${version}',
+    commitMessage: 'chore: release v${version}',
+    tagName: 'v${version}',
     tagAnnotation: 'Release CurrencyX AdonisJS v${version}',
     push: true,
     requireCleanWorkingDir: false, // Allow dirty working dir for development
@@ -10,7 +10,7 @@ module.exports = {
   },
   github: {
     release: true,
-    releaseName: 'CurrencyX AdonisJS v${version}',
+    releaseName: 'Release v${version}',
     releaseNotes: null,
     autoGenerate: true,
     draft: false,
