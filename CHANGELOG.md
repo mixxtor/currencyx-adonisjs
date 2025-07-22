@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+
+
+# [1.1.0](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.0.4...v1.1.0) (2025-07-22)
+
+### Added
+
+- Added main service for currency management with type inference.
+- Created utility functions for defining currency configuration and managing database interactions.
+
+### Refactor
+
+- Implemented a new DatabaseProvider class for handling currency data with caching support.
+- Updated tests to reflect changes in configuration and provider structure.
+- Enhanced TypeScript definitions for better type safety and inference.
+- Updated TypeScript configuration to support decorators and metadata.
+
+
+### Features
+
+* introduce CurrencyX AdonisJS integration with new database provider ([4fe38ca](https://github.com/mixxtor/currencyx-adonisjs/commit/4fe38ca68a5749043b9ae95548691e6a0fb022ee))
+
 ## [1.0.4](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.0.3...v1.0.4) (2025-07-19)
 
 ### Refactor

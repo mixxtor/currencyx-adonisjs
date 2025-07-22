@@ -1,7 +1,7 @@
 {
   "name": "@mixxtor/currencyx-adonisjs",
   "description": "AdonisJS integration for CurrencyX.js with database provider and cache support",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "engines": {
     "node": ">=20.6.0"
   },
