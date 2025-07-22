@@ -1,104 +1,108 @@
-/**
- * Database Provider for CurrencyX using Lucid ORM
- */
-
-import type { BaseModel } from '@adonisjs/lucid/orm'
 import type {
   CurrencyCode,
   ConversionResult,
   ExchangeRatesResult,
   ConvertParams,
   ExchangeRatesParams,
-  HealthCheckResult,
 } from '@mixxtor/currencyx-js'
 import { BaseCurrencyProvider } from '@mixxtor/currencyx-js'
-import type { DatabaseConfig, CurrencyRecord, CacheConfig } from './types.js'
+import type { DatabaseConfig, CurrencyRecord } from '../types.js'
 import type { CacheService } from '@adonisjs/cache/types'
 import type { ApplicationService } from '@adonisjs/core/types'
+import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
+import type { LucidModel } from '@adonisjs/lucid/types/model'
 
-export class DatabaseProvider extends BaseCurrencyProvider {
+export class DatabaseProvider<Model extends LucidModel = LucidModel> extends BaseCurrencyProvider {
+  declare [PROVIDER_CURRENCY_MODEL]: InstanceType<Model>
+
   readonly name = 'database'
 
-  private model: typeof BaseModel | null = null
-  private columns: Required<NonNullable<DatabaseConfig['columns']>>
+  protected model?: Model
+  private columns: NonNullable<DatabaseConfig<Model>['columns']>
+  private configModel?: DatabaseConfig<Model>['model']
 
   private cache?: CacheService
-  private cacheEnabled: boolean = false
   private cacheConfig?: {
+    enabled: boolean
     ttl: number
     prefix: string
   }
+  private cacheSetupPromise?: Promise<void>
+  private app?: ApplicationService
+  private config: DatabaseConfig<Model>
 
-  constructor(config: DatabaseConfig, app?: ApplicationService) {
+  constructor(config: DatabaseConfig<Model>, app?: ApplicationService) {
     super()
 
+    this.config = config
+    this.app = app
     this.columns = {
       code: config.columns?.code || 'code',
       rate: config.columns?.rate || 'exchange_rate',
     }
 
     this.base = config.base || 'USD'
+    this.configModel = config.model
+  }
 
-    // Setup cache if configured
-    if (config.cache !== false && config.cache) {
-      this.#setupCache(config.cache, app)
+  /**
+   * Imports the model from the provider, returns and caches it
+   * for further operations.
+   */
+  protected async getModel() {
+    if (!this.configModel) {
+      throw new Error('Currency model not configured')
     }
 
-    // Load model asynchronously (handle rejection to prevent unhandled promise rejection)
-    this.#loadModel(config.model).catch((error) => {
-      // Error will be handled when methods are called
-      console.warn('Failed to load currency model:', error.message)
-    })
+    if (this.model && !('hot' in import.meta)) {
+      return this.model
+    }
+
+    const importedModel = await this.configModel()
+    this.model = importedModel.default
+    return this.model
+  }
+
+  /**
+   * Setup cache based on configuration (lazy initialization)
+   */
+  async #ensureCacheSetup(): Promise<void> {
+    if (this.cacheSetupPromise) {
+      return this.cacheSetupPromise
+    }
+
+    this.cacheSetupPromise = this.#setupCache()
+    return this.cacheSetupPromise
   }
 
   /**
    * Setup cache based on configuration
    */
-  async #setupCache(cacheConfig: CacheConfig, app?: ApplicationService): Promise<void> {
-    if (!app) return
+  async #setupCache(): Promise<void> {
+    const cacheConfig = this.config.cache
+    if (!this.app || cacheConfig === false || !cacheConfig) {
+      return
+    }
 
     // Check if cache is enabled
-    this.cacheEnabled = cacheConfig.enabled !== false // Default to true
-
-    if (!this.cacheEnabled) {
+    if (!cacheConfig.enabled) {
       return
     }
 
     try {
       this.cacheConfig = {
+        enabled: cacheConfig.enabled,
         ttl: cacheConfig.ttl || 3600,
         prefix: cacheConfig.prefix || 'currency',
       }
 
       // Use @adonisjs/cache
-      const cacheManager = await app.container.make('cache')
+      const cacheManager = await this.app.container.make('cache')
       this.cache = cacheManager
-    } catch (error) {
+    } catch (error: any) {
       // Cache is optional, continue without it
       console.warn('Cache setup failed, continuing without cache:', error.message)
-      this.cacheEnabled = false
     }
-  }
-
-  /**
-   * Load the Lucid model
-   */
-  async #loadModel(modelLoader: DatabaseConfig['model']): Promise<void> {
-    try {
-      this.model = await modelLoader()
-    } catch (error) {
-      throw new Error(`Failed to load currency model: ${error.message}`)
-    }
-  }
-
-  /**
-   * Get the loaded model instance
-   */
-  async #getModel(): Promise<typeof BaseModel> {
-    if (!this.model) {
-      throw new Error('Currency model not loaded. Make sure the model is properly configured.')
-    }
-    return this.model
   }
 
   /**
@@ -113,14 +117,15 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Get data from cache
    */
   async #getFromCache<T>(key: string): Promise<T | null> {
-    if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return null
+    await this.#ensureCacheSetup()
+
+    if (!this.cacheConfig || !this.cacheConfig.enabled || !this.cache) return null
 
     try {
       const cacheKey = this.#getCacheKey(key)
       return await this.cache.get({ key: cacheKey })
     } catch (error) {
-      // Cache errors should not break the main functionality
-      console.warn('Cache get error:', error.message)
+      console.error(error)
       return null
     }
   }
@@ -129,14 +134,15 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Set data to cache
    */
   private async setToCache<T>(key: string, value: T): Promise<void> {
-    if (!this.cacheEnabled || !this.cacheConfig || !this.cache) return
+    await this.#ensureCacheSetup()
+
+    if (!this.cacheConfig || !this.cacheConfig.enabled || !this.cache) return
 
     try {
       const cacheKey = this.#getCacheKey(key)
       await this.cache.set({ key: cacheKey, value, ttl: this.cacheConfig.ttl })
     } catch (error) {
-      // Cache errors should not break the main functionality
-      console.warn('Cache set error:', error.message)
+      console.error(error)
     }
   }
 
@@ -161,10 +167,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
       let rate = await this.#getFromCache<number>(cacheKey)
 
       if (!rate) {
-        // Get rate from database
         rate = await this.#getExchangeRate(from, to)
-
-        // Cache the rate
         await this.setToCache(cacheKey, rate)
       }
 
@@ -177,7 +180,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
         date: new Date().toISOString(),
         result,
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         query: { from, to, amount },
@@ -191,13 +194,58 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     }
   }
 
+  async #currencyList(refresh = true) {
+    // Ensure cache is setup before using it
+    await this.#ensureCacheSetup()
+
+    const Model = await this.getModel()
+    const query = Model.query().select(Object.keys(this.columns))
+
+    if (!refresh || !this.cache || !this.cacheConfig) {
+      return await query
+    }
+
+    const { prefix = 'currency', ttl = 3600 } = this.cacheConfig
+
+    refresh && (await this.cache.delete({ key: prefix }))
+
+    return await this.cache.getOrSet({ key: prefix, factory: () => query, ttl })
+  }
+
   /**
    * Get latest rates (required abstract method)
    */
-  async latestRates(params?: ExchangeRatesParams): Promise<ExchangeRatesResult> {
-    const symbols = params?.symbols
-    const base = params?.base || this.base
-    return this.getExchangeRates(base, symbols)
+  async latestRates(
+    params?: ExchangeRatesParams & { cache?: boolean }
+  ): Promise<ExchangeRatesResult> {
+    const { base = this.base, symbols: currencyCodes, cache } = params || {}
+    const result = {
+      success: false,
+      timestamp: new Date().getTime(),
+      date: new Date().toISOString(),
+      base: base,
+      rates: {} as Record<string, number>,
+      error: undefined as { info: string; type: string } | undefined,
+    }
+
+    try {
+      const currencies = await this.#currencyList(!cache)
+      for (const record of currencies ?? []) {
+        const code = record[this.columns.code as keyof typeof record] as string
+        const rate = record[this.columns.rate as keyof typeof record] as number
+        if (!code || !currencyCodes?.length || currencyCodes?.includes(code)) {
+          result.rates[code] = rate
+        }
+      }
+      result.success = true
+    } catch (error: any) {
+      result.error = {
+        info: error.message,
+        type: 'database_error',
+      }
+    }
+
+    return result
   }
 
   /**
@@ -216,7 +264,7 @@ export class DatabaseProvider extends BaseCurrencyProvider {
    * Logic: all rates are stored relative to base currency (e.g., USD)
    */
   async #getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
-    const Model = await this.#getModel()
+    const Model = await this.getModel()
 
     // Handle base currency conversions
     if (from === this.base && to === this.base) {
@@ -275,85 +323,5 @@ export class DatabaseProvider extends BaseCurrencyProvider {
     }
 
     return toRateValue / fromRateValue
-  }
-
-  /**
-   * Get all exchange rates for a base currency
-   */
-  async getExchangeRates(
-    base?: CurrencyCode,
-    symbols?: CurrencyCode[]
-  ): Promise<ExchangeRatesResult> {
-    try {
-      const Model = await this.#getModel()
-
-      let query = Model.query()
-
-      // Note: base parameter is ignored since we removed base column
-      // All rates are assumed to be relative to a common base currency
-
-      if (symbols && symbols.length > 0) {
-        query = query.whereIn(this.columns.code, symbols)
-      }
-
-      const records = (await query.exec()) as CurrencyRecord[]
-
-      const rates: Record<string, number> = {}
-
-      for (const record of records) {
-        const code = record[this.columns.code]
-        const rate = record[this.columns.rate]
-
-        if (code && rate) {
-          rates[code] = Number(rate)
-        }
-      }
-
-      return {
-        success: true,
-        timestamp: Date.now(),
-        date: new Date().toISOString(),
-        base: base || 'USD',
-        rates,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        timestamp: Date.now(),
-        date: new Date().toISOString(),
-        base: base || 'USD',
-        rates: {},
-        error: {
-          info: error.message,
-          type: 'database_error',
-        },
-      }
-    }
-  }
-
-  /**
-   * Health check for database connection
-   */
-  async healthCheck(): Promise<HealthCheckResult> {
-    const startTime = Date.now()
-
-    try {
-      const Model = await this.#getModel()
-
-      // Try a simple query to check database connectivity
-      await Model.query().limit(1).exec()
-
-      const latency = Date.now() - startTime
-
-      return {
-        healthy: true,
-        latency,
-      }
-    } catch (error) {
-      return {
-        healthy: false,
-        error: error.message,
-      }
-    }
   }
 }

@@ -1,129 +1,239 @@
 # CurrencyX AdonisJS
 
-AdonisJS integration for CurrencyX.js with database provider and cache support.
+> AdonisJS integration for CurrencyX.js with database provider and cache support. Seamlessly integrate currency conversion into your AdonisJS applications.
+
+[![npm version](https://badge.fury.io/js/@mixxtor%2Fcurrencyx-adonisjs.svg)](https://badge.fury.io/js/@mixxtor%2Fcurrencyx-adonisjs)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+[![AdonisJS](https://img.shields.io/badge/AdonisJS-v6-purple.svg)](https://adonisjs.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## ✨ Features
 
-- 🗄️ **Database Provider**: Full Lucid ORM integration for storing exchange rates
-- 🔧 **Service Provider**: Auto-registration with AdonisJS IoC container
-- ⚙️ **Configuration**: AdonisJS-style config with environment validation
-- 🎯 **Type Safety**: Full TypeScript support with module augmentation
-- 💾 **Cache Support**: Optional caching with @adonisjs/cache
-- 🚀 **Auto Setup**: Automatic model and migration generation
-- 🧪 **Well Tested**: Comprehensive test suite
+- 🚀 **AdonisJS Integration** - Seamless integration with AdonisJS v6 framework
+- 💾 **Database Provider** - Store exchange rates in your database using Lucid ORM
+- 🔄 **Multiple Providers** - Google Finance, Fixer.io, and database providers
+- 📦 **Cache Support** - Built-in caching with AdonisJS Cache
+- 🎯 **Type Safety** - Full TypeScript support with intelligent inference
+- 🔧 **Easy Setup** - Simple configuration and installation
+- 🌐 **Service Container** - Registered as AdonisJS service for dependency injection
+- 🏗️ **Repository Pattern** - Clean architecture following AdonisJS patterns
 
-## 🚀 Installation
+## 📦 Installation
 
 ```bash
 npm install @mixxtor/currencyx-adonisjs
+```
+
+## 🚀 Setup
+
+### 1. Configure the package
+
+```bash
 node ace configure @mixxtor/currencyx-adonisjs
 ```
 
-The configure command will:
-
+This will:
 - Create `config/currency.ts` configuration file
-- Generate `app/models/currency.ts` model
-- Create database migration for currencies table
-- Register the service provider in `adonisrc.ts`
+- Create Currency model and migration stubs
+- Register the service provider
 
-## 📋 Requirements
+### 2. Configure providers
 
-- AdonisJS v6.2.0 or higher
-- @adonisjs/lucid v21.0.0 or higher
-- @adonisjs/cache (optional, for caching support)
-
-## ⚙️ Configuration
-
-After installation, configure your currency settings in `config/currency.ts`:
+Edit `config/currency.ts`:
 
 ```typescript
 import env from '#start/env'
 import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
 
 export default defineConfig({
-  default: 'database',
+  /*
+  |--------------------------------------------------------------------------
+  | Default Provider
+  |--------------------------------------------------------------------------
+  */
+  default: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
 
+  /*
+  |--------------------------------------------------------------------------
+  | Provider Configurations
+  |--------------------------------------------------------------------------
+  */
   providers: {
-    // Database provider using Lucid ORM
+    /*
+    |--------------------------------------------------------------------------
+    | Database Provider
+    |--------------------------------------------------------------------------
+    | Uses your local database to store and retrieve exchange rates.
+    */
     database: exchanges.database({
       model: () => import('#models/currency'),
-      base: 'USD', // Base currency - all exchange rates are relative to this
+      base: 'USD',
       columns: {
-        code: 'code', // Currency code (USD, EUR, etc.)
-        rate: 'exchange_rate', // Exchange rate column name
+        code: 'code',
+        rate: 'exchange_rate',
       },
-      cache: cache({
-        enabled: true, // Enable/disable caching
-        ttl: 3600, // 1 hour
-        prefix: 'currency', // Cache key prefix
-      }),
-      // Or disable caching:
-      // cache: false,
+      // cache: cache({
+      //   enabled: true,
+      //   ttl: 3600,
+      //   prefix: 'currency'
+      // })
     }),
 
-    // External providers (optional)
+    /*
+    |--------------------------------------------------------------------------
+    | Google Finance Provider
+    |--------------------------------------------------------------------------
+    | Free provider using Google Finance API. No API key required.
+    */
     google: exchanges.google({
       base: env.get('CURRENCY_BASE', 'USD'),
-      timeout: 5000,
+      timeout: 5000
     }),
 
-    fixer: exchanges.fixer({
-      accessKey: env.get('FIXER_API_KEY'),
-      base: 'EUR',
-      timeout: 10000,
-    }),
-  },
-
-  // Global cache configuration (optional)
-  // cache: cache(), // Enable global caching
+    /*
+    |--------------------------------------------------------------------------
+    | Fixer.io Provider
+    |--------------------------------------------------------------------------
+    | Requires API key from fixer.io.
+    */
+    // fixer: exchanges.fixer({
+    //   accessKey: env.get('FIXER_API_KEY'),
+    //   base: env.get('CURRENCY_BASE', 'EUR'),
+    //   timeout: 10000
+    // })
+  }
 })
 ```
 
-## 🗄️ Database Setup
+### 3. Create Currency model
 
-Run the migration to create the currencies table:
+```bash
+node ace make:model Currency
+```
+
+```typescript
+// app/models/currency.ts
+import { DateTime } from 'luxon'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
+
+export default class Currency extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare code: string
+
+  @column()
+  declare name: string
+
+  @column()
+  declare exchange_rate: number
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+```
+
+### 4. Create migration
+
+```bash
+node ace make:migration create_currencies_table
+```
+
+```typescript
+// database/migrations/xxx_create_currencies_table.ts
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'currencies'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments('id')
+      table.string('code', 3).notNullable().unique()
+      table.string('name').notNullable()
+      table.decimal('exchange_rate', 15, 8).notNullable()
+      table.timestamp('created_at')
+      table.timestamp('updated_at')
+    })
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
+```
+
+### 5. Run migration
 
 ```bash
 node ace migration:run
 ```
 
-Seed some initial data:
+## 💡 Usage
+
+### Basic Usage in Controllers
 
 ```typescript
-// database/seeders/currency_seeder.ts
-import Currency from '#models/currency'
+// app/controllers/exchange_controller.ts
+import { inject } from '@adonisjs/core'
+import type { HttpContext } from '@adonisjs/core/http'
+import CurrencyService from '@mixxtor/currencyx-adonisjs/services/main'
 
-export default class CurrencySeeder {
-  async run() {
-    await Currency.createMany([
-      { code: 'USD', rate: 1.0, base: 'USD' },
-      { code: 'EUR', rate: 0.85, base: 'USD' },
-      { code: 'GBP', rate: 0.73, base: 'USD' },
-      { code: 'JPY', rate: 110.0, base: 'USD' },
-    ])
-  }
-}
-```
+@inject()
+export default class ExchangeController {
+  constructor(private currency: CurrencyService) {}
 
-## 💻 Usage
-
-### Basic Usage
-
-```typescript
-// In your controllers or services
-export default class CurrencyController {
   async convert({ request, response }: HttpContext) {
-    const currency = await app.container.make('currency')
+    const { amount, from, to } = request.only(['amount', 'from', 'to'])
 
-    const result = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
+    const result = await this.currency.convert({
+      amount: Number(amount),
+      from,
+      to,
+    })
 
-    return response.json({
-      amount: result.amount, // 100
-      from: result.from, // 'USD'
-      to: result.to, // 'EUR'
-      result: result.result, // 85.0
-      rate: result.rate, // 0.85
-      provider: result.provider, // 'database'
+    if (result.success) {
+      return response.json({
+        success: true,
+        data: {
+          amount,
+          from,
+          to,
+          result: result.result,
+          rate: result.info.rate,
+          timestamp: result.info.timestamp,
+        },
+      })
+    }
+
+    return response.status(400).json({
+      success: false,
+      error: result.error?.info,
+    })
+  }
+
+  async getRates({ request, response }: HttpContext) {
+    const { base, symbols } = request.only(['base', 'symbols'])
+
+    const result = await this.currency.getExchangeRates({
+      base,
+      symbols: symbols.split(','),
+    })
+
+    if (result.success) {
+      return response.json({
+        success: true,
+        data: result,
+      })
+    }
+
+    return response.status(400).json({
+      success: false,
+      error: result.error?.info,
     })
   }
 }
@@ -132,168 +242,251 @@ export default class CurrencyController {
 ### Provider Switching
 
 ```typescript
-const currency = await app.container.make('currency')
+// Switch to different provider at runtime
+await this.currency.use('google')
+const googleResult = await this.currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
-// Use database provider
-currency.use('database')
-const dbResult = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
+await this.currency.use('fixer')
+const fixerResult = await this.currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
-// Switch to Google Finance
-currency.use('google')
-const googleResult = await currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
-
-// Get available providers
-const providers = currency.getAvailableProviders()
-// ['database', 'google', 'fixer']
+await this.currency.use('database')
+const dbResult = await this.currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 ```
 
-### Batch Operations
+### Database Provider Usage
+
+Seed your database with exchange rates:
 
 ```typescript
-// Get all rates for USD
-const rates = await currency.getExchangeRates('USD')
-// { base: 'USD', rates: { EUR: 0.85, GBP: 0.73, JPY: 110.0 } }
+// database/seeders/currency_seeder.ts
+import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import Currency from '#models/currency'
 
-// Get specific rates
-const specificRates = await currency.getExchangeRates('USD', ['EUR', 'GBP'])
-// { base: 'USD', rates: { EUR: 0.85, GBP: 0.73 } }
-```
+export default class extends BaseSeeder {
+  async run() {
+    const rates = [
+      { code: 'USD', name: 'US Dollar', exchange_rate: 1.0 },
+      { code: 'EUR', name: 'Euro', exchange_rate: 0.85 },
+      { code: 'GBP', name: 'British Pound', exchange_rate: 0.73 },
+      { code: 'JPY', name: 'Japanese Yen', exchange_rate: 110.0 },
+      { code: 'CAD', name: 'Canadian Dollar', exchange_rate: 1.25 },
+      { code: 'AUD', name: 'Australian Dollar', exchange_rate: 1.35 },
+    ]
 
-### Health Checks
-
-```typescript
-const health = await currency.healthCheck()
-// {
-//   provider: 'database',
-//   status: 'healthy',
-//   timestamp: Date,
-//   details: { database: 'connected', cache: 'enabled' }
-// }
-```
-
-## 🎯 Type Safety
-
-The package provides full TypeScript support with module augmentation:
-
-```typescript
-// Types are automatically available
-declare module '@adonisjs/core/types' {
-  interface ContainerBindings {
-    currency: Awaited<ReturnType<typeof import('@mixxtor/currencyx-js').createCurrency>>
+    for (const rate of rates) {
+      await Currency.updateOrCreate({ code: rate.code }, rate)
+    }
   }
 }
-
-// IntelliSense works perfectly
-const currency = await app.container.make('currency') // ✅ Fully typed
 ```
 
-## 💾 Caching
+Run the seeder:
 
-Cache is configured per database provider to improve performance:
+```bash
+node ace db:seed
+```
+
+### Caching
+
+Enable caching for better performance:
 
 ```typescript
 // config/currency.ts
-export default defineConfig({
-  providers: {
-    database: exchanges.database({
-      model: () => import('#models/currency'),
-      cache: cache({
-        enabled: true, // Enable/disable caching
-        ttl: 3600, // 1 hour
-        prefix: 'currency', // cache key prefix
-      }),
-      // Or disable caching completely:
-      // cache: false,
-    }),
+database: exchanges.database({
+  model: () => import('#models/currency'),
+  base: 'USD',
+  columns: {
+    code: 'code',
+    rate: 'exchange_rate',
   },
+  cache: cache({
+    enabled: true,
+    ttl: 3600,        // 1 hour
+    prefix: 'currency' // Cache key prefix
+  })
 })
 ```
 
-### Cache Configuration Options:
+## 📚 API Reference
 
-- **`enabled`**: Enable or disable caching (default: `true`)
-- **`ttl`**: Cache TTL in seconds (default: `3600` - 1 hour)
-- **`prefix`**: Cache key prefix (default: `'currency'`)
-- **`false`**: Disable caching completely
+The AdonisJS integration provides the same API as the core CurrencyX.js package:
 
-### Cache Behavior:
+### Core Methods
 
-- **When `enabled: false`**: Always queries database directly, no caching
-- **When `enabled: true`**: Caches exchange rates using `@adonisjs/cache` to improve performance
-- **Error handling**: Cache errors don't break functionality, falls back to database
+```typescript
+// Convert currency
+const result = await currency.convert({
+  amount: 100,
+  from: 'USD',
+  to: 'EUR',
+})
 
-### Database Schema:
-
-The package expects a table structure matching your existing currency schema:
-
-```sql
-CREATE TABLE currencies (
-  id INTEGER PRIMARY KEY,
-  code VARCHAR(3) UNIQUE NOT NULL,        -- Currency code (USD, EUR, etc.)
-  name VARCHAR(255) NOT NULL,             -- Currency name (US Dollar, Euro, etc.)
-  symbol VARCHAR(10) NOT NULL,            -- Currency symbol ($, €, £, etc.)
-  countries JSON,                         -- Countries using this currency
-  exchange_rate DECIMAL(15,8) NOT NULL,   -- Exchange rate relative to base currency
-  status BOOLEAN DEFAULT TRUE,            -- Currency status (active/inactive)
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-);
+// Get exchange rates
+const rates = await currency.getExchangeRates({
+  base: 'USD',
+  symbols: ['EUR', 'GBP', 'JPY'],
+})
 ```
 
-**Example data (matching your real schema):**
-```sql
-INSERT INTO currencies (code, name, symbol, countries, exchange_rate, status) VALUES
-  ('USD', 'US Dollar', '$', '["US"]', 1.0, true),
-  ('EUR', 'Euro', '€', '["DE","FR","IT","ES"]', 0.85, true),
-  ('GBP', 'British Pound', '£', '["GB"]', 0.73, true),
-  ('AUD', 'Australian Dollar', 'AU$', '["AU","CX","CC","HM","KI","NR","NF","TV"]', 1.51, true);
+### Convenience Methods
+
+```typescript
+// Shorthand methods
+const result = await currency.convertAmount(100, 'USD', 'EUR')
+const rates = await currency.getRates('USD', ['EUR', 'GBP'])
 ```
 
-### Base Currency Concept:
+### Provider Management
 
-- **All exchange rates are stored relative to a single base currency** (default: USD)
-- **Base currency rate = 1.0** (e.g., USD = 1.0)
-- **Other currencies** store their rate relative to base (e.g., EUR = 0.85 means 1 USD = 0.85 EUR)
-- **Cross-rate calculations** are handled automatically (e.g., EUR to GBP = GBP_rate / EUR_rate)
+```typescript
+// Switch providers
+currency.use('google')
 
-Cache keys follow the pattern: `currency:rate:USD:EUR`
+// Get current provider
+const current = currency.getCurrentProvider()
+
+// List available providers
+const providers = currency.getAvailableProviders()
+```
+
+### Utility Methods
+
+```typescript
+// Format currency
+const formatted = currency.formatCurrency(1234.56, 'USD', 'en-US')
+
+// Round values
+const rounded = currency.round(123.456789, 2)
+
+// Get supported currencies
+const currencies = await currency.getSupportedCurrencies()
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Add these to your `.env` file:
+
+```env
+# Default provider
+CURRENCY_PROVIDER=database
+
+# Base currency
+CURRENCY_BASE=USD
+
+# Fixer.io API key (if using fixer provider)
+FIXER_API_KEY=your_api_key_here
+```
+
+### Provider Configuration
+
+#### Database Provider
+
+```typescript
+database: exchanges.database({
+  model: () => import('#models/currency'),  // Your Currency model
+  base: 'USD',                              // Base currency
+  columns: {
+    code: 'code',                           // Currency code column
+    rate: 'exchange_rate',                  // Exchange rate column
+  },
+  cache: cache({                            // Optional caching
+    enabled: true,
+    ttl: 3600,
+    prefix: 'currency'
+  })
+})
+```
+
+#### Google Finance Provider
+
+```typescript
+google: exchanges.google({
+  base: 'USD',        // Base currency
+  timeout: 5000,      // Request timeout (optional)
+})
+```
+
+#### Fixer.io Provider
+
+```typescript
+fixer: exchanges.fixer({
+  accessKey: 'your-api-key',  // Required
+  base: 'EUR',                // Base currency
+  timeout: 10000,             // Request timeout (optional)
+})
+```
+
+## 🛡️ Error Handling
+
+All methods return result objects with success indicators:
+
+```typescript
+const result = await currency.convert({
+  amount: 100,
+  from: 'USD',
+  to: 'EUR',
+})
+
+if (result.success) {
+  // Handle success
+  console.log(`Converted: ${result.result}`)
+  console.log(`Rate: ${result.info.rate}`)
+  console.log(`Timestamp: ${result.info.timestamp}`)
+} else {
+  // Handle error
+  console.error(`Error: ${result.error?.info}`)
+  console.error(`Type: ${result.error?.type}`)
+}
+```
 
 ## 🧪 Testing
+
+The package includes comprehensive tests. Run them with:
 
 ```bash
 npm test
 ```
 
-## 🚀 Release Process
-
-This package uses `release-it` for automated releases:
+For development testing:
 
 ```bash
-# Patch release (1.0.0 → 1.0.1)
-npm run release:patch
-
-# Minor release (1.0.0 → 1.1.0)
-npm run release:minor
-
-# Major release (1.0.0 → 2.0.0)
-npm run release:major
-
-# Pre-release versions
-npm run release:beta   # 1.0.0 → 1.0.1-beta.0
-npm run release:alpha  # 1.0.0 → 1.0.1-alpha.0
-
-# Dry run (test without actually releasing)
-npm run release:dry
+npm run quick:test
 ```
 
-The release process automatically:
-- ✅ Runs linting and tests
-- 📦 Builds the package
-- 📝 Updates CHANGELOG.md
-- 🏷️ Creates git tag
-- 📤 Publishes to npm
-- 🎉 Creates GitHub release
+For test coverage:
+
+```bash
+npm run test
+# Coverage report will be generated in ./coverage/
+```
+
+## 📋 Requirements
+
+- **Node.js** >= 20.6.0
+- **AdonisJS** >= 6.19.0
+- **@adonisjs/lucid** >= 21.7.0 (for database provider)
+- **@adonisjs/cache** >= 1.3.0 (optional, for caching)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read the contributing guidelines before submitting PRs.
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE.md](./LICENSE.md) file for details.
+
+## 📦 Related Packages
+
+- [@mixxtor/currencyx-js](https://www.npmjs.com/package/@mixxtor/currencyx-js) - Core currency conversion library
+
+---
+
+<div align="center">
+
+**[Documentation](https://github.com/mixxtor/currencyx-adonisjs#readme)** • **[Issues](https://github.com/mixxtor/currencyx-adonisjs/issues)** • **[Contributing](./CONTRIBUTING.md)**
+
+Made with ❤️ by [Mixxtor](https://github.com/mixxtor)
+
+</div>

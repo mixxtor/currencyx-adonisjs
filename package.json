@@ -5,20 +5,18 @@
   "engines": {
     "node": ">=20.6.0"
   },
+  "main": "build/index.js",
   "type": "module",
   "files": [
-    "build/src",
-    "build/providers",
-    "build/stubs",
-    "build/index.d.ts",
-    "build/index.js",
-    "build/configure.d.ts",
-    "build/configure.js"
+    "build",
+    "!build/bin",
+    "!build/tests"
   ],
   "exports": {
     ".": "./build/index.js",
     "./types": "./build/src/types.js",
-    "./providers/currency_provider": "./build/providers/currency_provider.js"
+    "./services/main": "./build/services/main.js",
+    "./currency_provider": "./build/providers/currency_provider.js"
   },
   "scripts": {
     "clean": "del-cli build",
@@ -56,46 +54,81 @@
   "license": "MIT",
   "devDependencies": {
     "@adonisjs/assembler": "^7.8.2",
-    "@adonisjs/cache": "^1.2.0",
+    "@adonisjs/cache": "^1.3.0",
     "@adonisjs/core": "^6.19.0",
     "@adonisjs/eslint-config": "2.1.0",
-    "@adonisjs/lucid": "^21.7.0",
     "@adonisjs/prettier-config": "^1.4.5",
     "@adonisjs/tsconfig": "^1.4.1",
-    "@japa/assert": "^4.0.1",
-    "@japa/runner": "^4.2.0",
+    "@japa/assert": "^4.1.0",
+    "@japa/runner": "^4.3.0",
     "@release-it/conventional-changelog": "^10.0.1",
-    "@swc/core": "^1.13.0",
-    "@types/node": "^24.0.15",
+    "@swc/core": "^1.13.1",
+    "@types/node": "^24.1.0",
     "better-sqlite3": "^12.2.0",
     "c8": "^10.1.3",
     "copyfiles": "^2.4.1",
+    "cross-env": "^7.0.3",
     "del-cli": "^6.0.0",
+    "dotenv": "^17.2.0",
     "eslint": "^9.31.0",
+    "luxon": "^3.7.1",
+    "mjml": "^4.15.3",
     "prettier": "^3.6.2",
     "release-it": "^19.0.4",
     "sqlite3": "^5.1.7",
-    "ts-node-maintained": "^10.9.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "@adonisjs/core": "^6.2.0",
-    "@adonisjs/lucid": "^21.0.0"
+    "@adonisjs/assembler": "^7.8.2",
+    "@adonisjs/cache": "^1.3.0",
+    "@adonisjs/core": "^6.19.0",
+    "@adonisjs/lucid": "^21.7.0"
+  },
+  "dependencies": {
+    "@mixxtor/currencyx-js": "^1.0.10"
   },
   "peerDependenciesMeta": {
     "@adonisjs/cache": {
       "optional": true
     }
   },
+  "homepage": "https://github.com/mixxtor/currencyx-adonisjs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mixxtor/currencyx-adonisjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mixxtor/currencyx-adonisjs/issues"
+  },
   "publishConfig": {
     "access": "public",
     "tag": "latest"
   },
-  "np": {
-    "message": "chore(release): %s",
-    "tag": "latest",
-    "branch": "main",
-    "anyBranch": false
+  "release-it": {
+    "git": {
+      "requireCleanWorkingDir": true,
+      "requireUpstream": true,
+      "commitMessage": "chore(release): ${version}",
+      "tagAnnotation": "v${version}",
+      "push": true,
+      "tagName": "v${version}"
+    },
+    "github": {
+      "release": true
+    },
+    "npm": {
+      "publish": true,
+      "skipChecks": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": {
+          "name": "angular"
+        }
+      }
+    }
   },
   "c8": {
     "reporter": [
@@ -106,8 +139,5 @@
       "tests/**"
     ]
   },
-  "prettier": "@adonisjs/prettier-config",
-  "dependencies": {
-    "@mixxtor/currencyx-js": "^1.0.4"
-  }
+  "prettier": "@adonisjs/prettier-config"
 }

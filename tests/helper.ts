@@ -15,7 +15,6 @@ import { IgnitorFactory } from '@adonisjs/core/factories'
 import { AppEnvironments } from '@adonisjs/core/types/app'
 import { defineConfig as defineLucidConfig } from '@adonisjs/lucid'
 import { defineConfig as defineCacheConfig, drivers, store } from '@adonisjs/cache'
-
 import { defineConfig } from '../index.js'
 
 export function getCurrencyService(config?: any): BentoCache<any> {

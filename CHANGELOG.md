@@ -2,15 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-
 ## [1.0.4](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.0.3...v1.0.4) (2025-07-19)
 
 ### Refactor
+
 - All helper functions (`google()`, `fixer()`, `database()`) now return fully initialized provider instances instead of configuration objects.
 - Providers now properly inherit from their base classes, improving type safety and code clarity.
 - The internal structure and API patterns are now consistent with the broader currencyx-js ecosystem.
 
 ### Fixed
+
 - Fixed tests to check for provider instances instead of plain objects.
 - Removed `baseCurrency` property from `DatabaseProvider` and replaced all references with `this.base`.
 - Adjusted constructor and methods in `DatabaseProvider` to use the inherited `base` property.
@@ -19,6 +20,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.3](https://github.com/mixxtor/currencyx-adonisjs/compare/currencyx-adonisjs-v1.0.2...currencyx-adonisjs-v1.0.3) (2025-07-19)
 
 ### Fixed
+
 - Fixed stubs templates using `app.configPath()`, `app.modelPath()`, and `app.migrationsPath()`
 - Export `CurrencyService` types from `@mixxtor/currencyx-js`
 - Fixed currency provider service types from `@adonisjs/core/types`
@@ -26,6 +28,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.2](https://github.com/mixxtor/currencyx-adonisjs/compare/currencyx-adonisjs-v1.0.1...currencyx-adonisjs-v1.0.2) (2025-07-19)
 
 ### Fixed
+
 - Fixed stub exports with proper `to` attribute for AdonisJS v6 compatibility
 - Fixed provider import path in configure script
 - Added proper package.json exports for provider module
@@ -33,12 +36,14 @@ All notable changes to this project will be documented in this file.
 - Fixed "Cannot find module '@mixxtor/currencyx-adonisjs/currency_provider'" error
 
 ### Changed
+
 - Updated stub templates to use `app.configPath()`, `app.modelPath()`, and `app.migrationPath()`
 - Updated provider registration path to `@mixxtor/currencyx-adonisjs/providers/currency_provider`
 
 ## [1.0.0] - 2025-07-19
 
 ### Added
+
 - Initial release of CurrencyX AdonisJS integration
 - Database provider with Lucid ORM support
 - Base currency concept with automatic cross-rate calculations
@@ -50,6 +55,7 @@ All notable changes to this project will be documented in this file.
 - Flexible cache configuration (false | CacheConfig)
 
 ### Features
+
 - **Database Provider**: Full Lucid ORM integration for storing exchange rates
 - **Service Provider**: Auto-registration with AdonisJS IoC container
 - **Configuration**: AdonisJS-style config with environment validation
@@ -59,6 +65,7 @@ All notable changes to this project will be documented in this file.
 - **Well Tested**: Comprehensive test suite
 
 ### Technical Details
+
 - Base currency support (default: USD)
 - Column mapping for custom database schemas
 - Cross-rate calculations (EUR → GBP = GBP_rate / EUR_rate)

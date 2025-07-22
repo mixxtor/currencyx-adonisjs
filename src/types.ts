@@ -2,29 +2,24 @@
  * Types for CurrencyX AdonisJS integration
  */
 
-import type { BaseModel } from '@adonisjs/lucid/orm'
-import type { CacheService } from '@adonisjs/cache/types'
-import {
-  createCurrency,
-  type CurrencyProviderContract,
-  type CurrencyProviders,
-} from '@mixxtor/currencyx-js'
+import { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
+import { LucidModel } from '@adonisjs/lucid/types/model'
+import CurrencyService, { type CurrencyProviders } from '@mixxtor/currencyx-js'
 
-// // Cache manager interface (simplified to avoid dependency issues)
-// interface CacheStore {
-//   get<T = any>(key: string): Promise<T | null>
-//   set<T = any>(key: string, value: T, ttl?: number): Promise<void>
-// }
-interface CacheStore extends CacheService {}
+/**
+ * A list of known currency providers inferred from the user config
+ * This interface must be extended in user-land
+ */
+export { CurrencyProviders }
 
 /**
  * Database configuration for currency provider
  */
-export interface DatabaseConfig {
+export interface DatabaseConfig<Model extends LucidModel = LucidModel> {
   /**
    * The Lucid model to use for currency queries
    */
-  model: () => typeof BaseModel | Promise<typeof BaseModel>
+  model: () => Promise<{ default: Model }>
 
   /**
    * Base currency - all exchange rates in database are relative to this currency
@@ -41,13 +36,13 @@ export interface DatabaseConfig {
      * Currency code column (e.g., 'USD', 'EUR')
      * @default 'code'
      */
-    code?: string
+    code: string
 
     /**
      * Exchange rate column
      * @default 'exchange_rate'
      */
-    rate?: string
+    rate: string
   }
 
   /**
@@ -92,8 +87,15 @@ export interface CurrencyConfig {
   /**
    * Provider configurations
    */
-  providers: Record<keyof CurrencyProviders, CurrencyProviderContract>
+  providers: Record<keyof CurrencyProviders, CurrencyService>
 }
+
+/**
+ * Infer the providers from the user config
+ */
+export type InferProviders<
+  T extends ConfigProvider<{ config: { providers: Record<string, ProviderFactory> } }>,
+> = Awaited<ReturnType<T['resolver']>>['config']['providers']
 
 /**
  * Currency record interface for database queries
@@ -106,15 +108,16 @@ export interface CurrencyRecord {
 }
 
 /**
- * Cache manager interface
+ * Representation of a factory function that returns
+ * an instance of a driver.
  */
-export interface CacheManager extends CacheStore {}
+export type ProviderFactory = () => CurrencyService
 
 /**
- * Service container bindings
+ * Service config provider is an extension of the config
+ * provider and accepts the name of the disk service
  */
-declare module '@adonisjs/core/types' {
-  interface ContainerBindings {
-    currency: Awaited<ReturnType<typeof createCurrency>>
-  }
+export type ServiceConfigProvider<Factory extends ProviderFactory> = {
+  type: 'provider'
+  resolver: (name: string, app: ApplicationService) => Promise<Factory>
 }

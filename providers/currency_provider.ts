@@ -1,14 +1,26 @@
 /**
- * CurrencyX Service Provider for AdonisJS
+ * @mixxtor/currencyx-adonisjs
+ *
+ * (c) Mixxtor
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
-import {
-  createCurrency,
-  type CurrencyProviderContract,
-  type CurrencyProviders,
-} from '@mixxtor/currencyx-js'
+import CurrencyService, { createCurrency } from '@mixxtor/currencyx-js'
 import type { CurrencyConfig } from '../src/types.js'
+import { configProvider } from '@adonisjs/core'
+import { RuntimeException } from '@adonisjs/core/exceptions'
+
+/**
+ * Extend AdonisJS container bindings with currency service
+ */
+declare module '@adonisjs/core/types' {
+  interface ContainerBindings {
+    'currency.manager': CurrencyService
+  }
+}
 
 export default class CurrencyProvider {
   constructor(protected app: ApplicationService) {}
@@ -17,27 +29,24 @@ export default class CurrencyProvider {
    * Register currency service
    */
   async register() {
-    this.app.container.singleton('currency', async () => {
-      const config = this.app.config.get<CurrencyConfig>('currency')
+    this.app.container.singleton('currency.manager', async () => {
+      const exchangeConfigProvider = this.app.config.get<CurrencyConfig>('currency')
 
-      if (!config) {
-        throw new Error(
-          'Currency configuration not found. Please run "node ace configure @mixxtor/currencyx-adonisjs"'
+      if (!exchangeConfigProvider) {
+        throw new RuntimeException(
+          'Currency configuration not found. Make sure you have a "config/currency.ts" file with "defineConfig" export'
         )
       }
 
-      // Build providers config dynamically
-      const providers: Record<keyof CurrencyProviders, CurrencyProviderContract> = {}
-
-      for (const providerName of Object.keys(config.providers)) {
-        providers[providerName] = config.providers[providerName]
+      const config = await configProvider.resolve<CurrencyConfig>(this.app, exchangeConfigProvider)
+      if (!config) {
+        throw new RuntimeException(
+          'Invalid "config/currency.ts" file. Make sure you are using the "defineConfig" method'
+        )
       }
 
       // Create currency service with all providers
-      return createCurrency({
-        default: config.default,
-        providers,
-      })
+      return createCurrency(config as any)
     })
   }
 

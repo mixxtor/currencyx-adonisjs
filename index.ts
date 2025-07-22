@@ -8,20 +8,8 @@
 */
 
 export { configure } from './configure.js'
-
-// Configuration helpers
-export {
-  defineConfig,
-  exchanges,
-  database,
-  google,
-  fixer,
-  cache,
-  createCurrencyModel,
-  createCurrencyMigration,
-  type InferProviders,
-  type InferDefaultProvider,
-} from './src/config.js'
+export { stubsRoot } from './stubs/main.js'
+export { defineConfig, exchanges } from './src/define_config.js'
 
 // Types
 export type {
@@ -29,18 +17,9 @@ export type {
   CacheConfig,
   CurrencyConfig,
   CurrencyRecord,
-  CacheManager,
+  CurrencyProviders,
+  InferProviders as InferCurrencyProviders,
 } from './src/types.js'
 
 // Database Provider
-export { DatabaseProvider } from './src/database_provider.js'
-
-// Re-export from core package
-export {
-  createCurrency,
-  CurrencyService,
-  type CurrencyCode,
-  type ConversionResult,
-  type ExchangeRatesResult,
-  type HealthCheckResult,
-} from '@mixxtor/currencyx-js'
+export { DatabaseProvider } from './src/exchanges/database_provider.js'
