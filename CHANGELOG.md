@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 
 
+# [1.2.0](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.1.0...v1.2.0) (2025-07-23)
+
+
+### Features
+
+* update DatabaseProvider to use new database_exchange module and adjust type exports ([32d5a27](https://github.com/mixxtor/currencyx-adonisjs/commit/32d5a27a3300932ac6d11b8116f8fcf996a7efcf))
+
 # [1.1.0](https://github.com/mixxtor/currencyx-adonisjs/compare/v1.0.4...v1.1.0) (2025-07-22)
 
 ### Added
