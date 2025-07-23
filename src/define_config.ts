@@ -1,6 +1,6 @@
 import { exchanges as currencyExchanges } from '@mixxtor/currencyx-js'
 import type { DatabaseConfig, ServiceConfigProvider, ProviderFactory } from './types.js'
-import { DatabaseProvider } from './exchanges/database_provider.js'
+import { DatabaseProvider } from './exchanges/database_exchange.js'
 import { ApplicationService } from '@adonisjs/core/types'
 import { configProvider } from '@adonisjs/core'
 import type { ConfigProvider } from '@adonisjs/core/types'

@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { DatabaseProvider } from '../src/exchanges/database_provider.js'
+import { DatabaseProvider } from '../src/exchanges/database_exchange.js'
 
 /**
  * Simple in-memory currency repository for testing

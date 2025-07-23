@@ -5,14 +5,14 @@ import type {
   ConvertParams,
   ExchangeRatesParams,
 } from '@mixxtor/currencyx-js'
-import { BaseCurrencyProvider } from '@mixxtor/currencyx-js'
+import { BaseCurrencyExchange } from '@mixxtor/currencyx-js'
 import type { DatabaseConfig, CurrencyRecord } from '../types.js'
 import type { CacheService } from '@adonisjs/cache/types'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 
-export class DatabaseProvider<Model extends LucidModel = LucidModel> extends BaseCurrencyProvider {
+export class DatabaseProvider<Model extends LucidModel = LucidModel> extends BaseCurrencyExchange {
   declare [PROVIDER_CURRENCY_MODEL]: InstanceType<Model>
 
   readonly name = 'database'

@@ -17,9 +17,9 @@ export type {
   CacheConfig,
   CurrencyConfig,
   CurrencyRecord,
-  CurrencyProviders,
-  InferProviders as InferCurrencyProviders,
+  CurrencyExchanges,
+  InferExchanges,
 } from './src/types.js'
 
 // Database Provider
-export { DatabaseProvider } from './src/exchanges/database_provider.js'
+export { DatabaseProvider } from './src/exchanges/database_exchange.js'

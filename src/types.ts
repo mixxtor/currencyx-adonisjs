@@ -4,13 +4,13 @@
 
 import { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
 import { LucidModel } from '@adonisjs/lucid/types/model'
-import CurrencyService, { type CurrencyProviders } from '@mixxtor/currencyx-js'
+import { type CurrencyExchanges, BaseCurrencyExchange } from '@mixxtor/currencyx-js'
 
 /**
  * A list of known currency providers inferred from the user config
  * This interface must be extended in user-land
  */
-export { CurrencyProviders }
+export { CurrencyExchanges }
 
 /**
  * Database configuration for currency provider
@@ -82,20 +82,20 @@ export interface CurrencyConfig {
   /**
    * Default provider to use
    */
-  default: keyof CurrencyProviders
+  default: keyof CurrencyExchanges
 
   /**
    * Provider configurations
    */
-  providers: Record<keyof CurrencyProviders, CurrencyService>
+  providers: Record<keyof CurrencyExchanges, BaseCurrencyExchange>
 }
 
 /**
  * Infer the providers from the user config
  */
-export type InferProviders<
-  T extends ConfigProvider<{ config: { providers: Record<string, ProviderFactory> } }>,
-> = Awaited<ReturnType<T['resolver']>>['config']['providers']
+export type InferExchanges<
+  T extends ConfigProvider<{ providers: Record<string, ProviderFactory> }>,
+> = Awaited<ReturnType<T['resolver']>>['providers']
 
 /**
  * Currency record interface for database queries
@@ -111,7 +111,7 @@ export interface CurrencyRecord {
  * Representation of a factory function that returns
  * an instance of a driver.
  */
-export type ProviderFactory = () => CurrencyService
+export type ProviderFactory = () => BaseCurrencyExchange
 
 /**
  * Service config provider is an extension of the config
