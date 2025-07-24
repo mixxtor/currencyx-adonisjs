@@ -6,7 +6,7 @@ import type {
   ExchangeRatesParams,
 } from '@mixxtor/currencyx-js'
 import { BaseCurrencyExchange } from '@mixxtor/currencyx-js'
-import type { DatabaseConfig, CurrencyRecord } from '../types.js'
+import type { DatabaseConfig, CurrencyRecord, CacheConfig } from '../types.js'
 import type { CacheService } from '@adonisjs/cache/types'
 import type { ApplicationService } from '@adonisjs/core/types'
 import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
@@ -22,20 +22,16 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   private configModel?: DatabaseConfig<Model>['model']
 
   private cache?: CacheService
-  private cacheConfig?: {
-    enabled: boolean
-    ttl: number
-    prefix: string
-  }
+  private cacheConfig?: CacheConfig
   private cacheSetupPromise?: Promise<void>
   private app?: ApplicationService
   private config: DatabaseConfig<Model>
 
-  constructor(config: DatabaseConfig<Model>, app?: ApplicationService) {
+  constructor(config: DatabaseConfig<Model>) {
     super()
 
     this.config = config
-    this.app = app
+    this.app = config.cache ? config.cache.app : undefined
     this.columns = {
       code: config.columns?.code || 'code',
       rate: config.columns?.rate || 'exchange_rate',
@@ -84,14 +80,9 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
       return
     }
 
-    // Check if cache is enabled
-    if (!cacheConfig.enabled) {
-      return
-    }
-
     try {
       this.cacheConfig = {
-        enabled: cacheConfig.enabled,
+        app: this.app,
         ttl: cacheConfig.ttl || 3600,
         prefix: cacheConfig.prefix || 'currency',
       }
@@ -119,7 +110,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   async #getFromCache<T>(key: string): Promise<T | null> {
     await this.#ensureCacheSetup()
 
-    if (!this.cacheConfig || !this.cacheConfig.enabled || !this.cache) return null
+    if (!this.cacheConfig || !this.cache) return null
 
     try {
       const cacheKey = this.#getCacheKey(key)
@@ -136,7 +127,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   private async setToCache<T>(key: string, value: T): Promise<void> {
     await this.#ensureCacheSetup()
 
-    if (!this.cacheConfig || !this.cacheConfig.enabled || !this.cache) return
+    if (!this.cacheConfig || !this.cache) return
 
     try {
       const cacheKey = this.#getCacheKey(key)

@@ -1,7 +1,6 @@
 import { exchanges as currencyExchanges } from '@mixxtor/currencyx-js'
 import type { DatabaseConfig, ServiceConfigProvider, ExchangeFactory } from './types.js'
 import { DatabaseExchange } from './exchanges/database.js'
-import { ApplicationService } from '@adonisjs/core/types'
 import { configProvider } from '@adonisjs/core'
 import type { ConfigProvider } from '@adonisjs/core/types'
 
@@ -9,7 +8,7 @@ import type { ConfigProvider } from '@adonisjs/core/types'
  * Define database exchange provider configuration
  * Returns a factory function to avoid eager instantiation
  */
-function database(config: DatabaseConfig, app?: ApplicationService): DatabaseExchange {
+function database(config: DatabaseConfig): DatabaseExchange {
   if (!config.model) {
     throw new Error('Database exchange requires a model')
   }
@@ -25,7 +24,7 @@ function database(config: DatabaseConfig, app?: ApplicationService): DatabaseExc
     cache: config.cache,
   }
 
-  return new DatabaseExchange(dbConfig, app)
+  return new DatabaseExchange(dbConfig)
 }
 
 /**

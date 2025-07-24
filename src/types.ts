@@ -15,7 +15,10 @@ export { CurrencyExchanges }
 /**
  * Database configuration for currency provider
  */
-export interface DatabaseConfig<Model extends LucidModel = LucidModel> {
+export interface DatabaseConfig<
+  Model extends LucidModel = LucidModel,
+  Cache extends CacheConfig | undefined | false = CacheConfig | undefined,
+> {
   /**
    * The Lucid model to use for currency queries
    */
@@ -49,7 +52,7 @@ export interface DatabaseConfig<Model extends LucidModel = LucidModel> {
    * Cache configuration for this database provider
    * @default false
    */
-  cache?: CacheConfig | false
+  cache?: Cache | undefined | false
 }
 
 /**
@@ -57,10 +60,9 @@ export interface DatabaseConfig<Model extends LucidModel = LucidModel> {
  */
 export interface CacheConfig {
   /**
-   * Enable or disable caching
-   * @default true
+   * The AdonisJS application instance to use for looking up `cache` service
    */
-  enabled?: boolean
+  app: ApplicationService
 
   /**
    * Cache TTL in seconds

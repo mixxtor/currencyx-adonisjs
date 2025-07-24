@@ -89,7 +89,7 @@ test.group('Configuration Helpers', () => {
   test('fixer helper should require accessKey', ({ assert }) => {
     assert.throws(() => {
       exchanges.fixer({} as any)
-    }, 'Fixer provider requires an accessKey')
+    }, 'Fixer exchange requires an accessKey')
   })
 
   test('fixer helper should set defaults with accessKey', ({ assert }) => {
