@@ -73,7 +73,7 @@ export default defineConfig({
         rate: 'exchange_rate',
       },
       // cache: cache({
-      //   enabled: true,
+      //   app: application,
       //   ttl: 3600,
       //   prefix: 'currency'
       // })
@@ -300,9 +300,9 @@ database: exchanges.database({
     rate: 'exchange_rate',
   },
   cache: cache({
-    enabled: true,
-    ttl: 3600,        // 1 hour
-    prefix: 'currency' // Cache key prefix
+    app: application,                       // AdonisJS application instance
+    ttl: 3600,                              // 1 hour
+    prefix: 'currency'                      // Cache key prefix
   })
 })
 ```
@@ -392,7 +392,7 @@ database: exchanges.database({
     rate: 'exchange_rate',                  // Exchange rate column
   },
   cache: cache({                            // Optional caching
-    enabled: true,
+    app: application,                       // AdonisJS application instance
     ttl: 3600,
     prefix: 'currency'
   })

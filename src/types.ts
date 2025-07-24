@@ -2,6 +2,7 @@
  * Types for CurrencyX AdonisJS integration
  */
 
+import { CacheService } from '@adonisjs/cache/types'
 import { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
 import { LucidModel } from '@adonisjs/lucid/types/model'
 import { type CurrencyExchanges, BaseCurrencyExchange } from '@mixxtor/currencyx-js'
@@ -22,7 +23,7 @@ export interface DatabaseConfig<
   /**
    * The Lucid model to use for currency queries
    */
-  model: () => Promise<{ default: Model }>
+  model: () => Promise<{ default: Model }> | Model
 
   /**
    * Base currency - all exchange rates in database are relative to this currency
@@ -60,9 +61,10 @@ export interface DatabaseConfig<
  */
 export interface CacheConfig {
   /**
-   * The AdonisJS application instance to use for looking up `cache` service
+   * The AdonisJS cache service instance
+   * @requires @adonisjs/cache
    */
-  app: ApplicationService
+  service: () => Promise<{ default: CacheService }> | CacheService
 
   /**
    * Cache TTL in seconds

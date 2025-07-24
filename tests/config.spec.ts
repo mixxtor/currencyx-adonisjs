@@ -103,20 +103,6 @@ test.group('Configuration Helpers', () => {
     assert.isFunction(exchange.latestRates)
   })
 
-  test('cache helper should accept custom config', ({ assert }) => {
-    const config = {
-      enabled: false,
-      ttl: 1800,
-      prefix: 'rates',
-    }
-
-    assert.deepEqual(config, {
-      enabled: false,
-      ttl: 1800,
-      prefix: 'rates',
-    })
-  })
-
   test('exchanges object should contain all helpers', ({ assert }) => {
     assert.isFunction(exchanges.database)
     assert.isFunction(exchanges.google)

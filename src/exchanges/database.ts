@@ -8,7 +8,6 @@ import type {
 import { BaseCurrencyExchange } from '@mixxtor/currencyx-js'
 import type { DatabaseConfig, CurrencyRecord, CacheConfig } from '../types.js'
 import type { CacheService } from '@adonisjs/cache/types'
-import type { ApplicationService } from '@adonisjs/core/types'
 import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 
@@ -20,18 +19,16 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   protected model?: Model
   private columns: NonNullable<DatabaseConfig<Model>['columns']>
   private configModel?: DatabaseConfig<Model>['model']
-
+  private cacheService?: CacheConfig['service']
   private cache?: CacheService
   private cacheConfig?: CacheConfig
   private cacheSetupPromise?: Promise<void>
-  private app?: ApplicationService
   private config: DatabaseConfig<Model>
 
   constructor(config: DatabaseConfig<Model>) {
     super()
 
     this.config = config
-    this.app = config.cache ? config.cache.app : undefined
     this.columns = {
       code: config.columns?.code || 'code',
       rate: config.columns?.rate || 'exchange_rate',
@@ -55,8 +52,26 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     }
 
     const importedModel = await this.configModel()
-    this.model = importedModel.default
+    this.model = 'default' in importedModel ? importedModel.default : importedModel
     return this.model
+  }
+
+  /**
+   * Imports the cache service from the provider, returns and caches it
+   * for further operations.
+   */
+  protected async getCacheService() {
+    if (!this.cacheService) {
+      throw new Error('Currency cache not configured')
+    }
+
+    if (this.cache && !('hot' in import.meta)) {
+      return this.cache
+    }
+
+    const importedCache = await this.cacheService()
+    this.cache = 'default' in importedCache ? importedCache.default : importedCache
+    return this.cache
   }
 
   /**
@@ -76,22 +91,14 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
    */
   async #setupCache(): Promise<void> {
     const cacheConfig = this.config.cache
-    if (!this.app || cacheConfig === false || !cacheConfig) {
+    if (cacheConfig === false || !cacheConfig) {
       return
     }
 
     try {
-      this.cacheConfig = {
-        app: this.app,
-        ttl: cacheConfig.ttl || 3600,
-        prefix: cacheConfig.prefix || 'currency',
-      }
-
-      // Use @adonisjs/cache
-      const cacheManager = await this.app.container.make('cache')
-      this.cache = cacheManager
-    } catch (error: any) {
-      // Cache is optional, continue without it
+      this.cacheConfig = cacheConfig
+      this.cache = await this.getCacheService()
+    } catch (error) {
       console.warn('Cache setup failed, continuing without cache:', error.message)
     }
   }
