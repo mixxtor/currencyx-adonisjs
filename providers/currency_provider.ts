@@ -46,7 +46,7 @@ export default class CurrencyProvider {
       }
 
       // Create currency service with all providers
-      return createCurrency(config as any)
+      return createCurrency(config)
     })
   }
 

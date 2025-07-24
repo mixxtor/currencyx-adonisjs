@@ -3,16 +3,14 @@ import { defineConfig, exchanges } from '../src/define_config.js'
 
 test.group('Configuration Helpers', () => {
   test('defineConfig should return a config provider', ({ assert }) => {
-    const config = {
+    const result = defineConfig({
       default: 'database' as const,
-      providers: {
+      exchanges: {
         database: {
           model: () => Promise.resolve({} as any),
         },
       },
-    }
-
-    const result = defineConfig(config as any)
+    })
 
     // defineConfig returns a ConfigProvider, not the original config
     assert.equal(result.type, 'provider')
@@ -22,7 +20,7 @@ test.group('Configuration Helpers', () => {
   test('database helper should validate model requirement', ({ assert }) => {
     assert.throws(() => {
       exchanges.database({} as any)
-    }, 'Database provider requires a model')
+    }, 'Database exchange requires a model')
   })
 
   test('database helper should set default columns and base currency', ({ assert }) => {
@@ -31,7 +29,7 @@ test.group('Configuration Helpers', () => {
     // Create the actual provider instance
     const config = exchanges.database({ model: mockModel })
     assert.instanceOf(config, Object)
-    assert.equal(config.constructor.name, 'DatabaseProvider')
+    assert.equal(config.constructor.name, 'DatabaseExchange')
     assert.equal(config.base, 'USD')
 
     // Check that provider has required methods
@@ -54,7 +52,7 @@ test.group('Configuration Helpers', () => {
     })
 
     assert.instanceOf(config, Object)
-    assert.equal(config.constructor.name, 'DatabaseProvider')
+    assert.equal(config.constructor.name, 'DatabaseExchange')
     assert.equal(config.base, 'EUR')
 
     // Check that provider has required methods
@@ -63,29 +61,29 @@ test.group('Configuration Helpers', () => {
   })
 
   test('google helper should set defaults', ({ assert }) => {
-    // Create the actual provider instance
-    const provider = exchanges.google()
-    assert.instanceOf(provider, Object)
-    assert.equal(provider.constructor.name, 'GoogleFinanceProvider')
+    // Create the actual exchange instance
+    const exchange = exchanges.google()
+    assert.instanceOf(exchange, Object)
+    assert.equal(exchange.constructor.name, 'GoogleFinanceExchange')
 
-    // Check that provider has required methods
-    assert.isFunction(provider.convert)
-    assert.isFunction(provider.latestRates)
+    // Check that exchange has required methods
+    assert.isFunction(exchange.convert)
+    assert.isFunction(exchange.latestRates)
   })
 
   test('google helper should accept custom config', ({ assert }) => {
     // Create the actual provider instance
-    const provider = exchanges.google({
+    const exchange = exchanges.google({
       base: 'EUR',
       timeout: 10000,
     })
 
-    assert.instanceOf(provider, Object)
-    assert.equal(provider.constructor.name, 'GoogleFinanceProvider')
+    assert.instanceOf(exchange, Object)
+    assert.equal(exchange.constructor.name, 'GoogleFinanceExchange')
 
-    // Check that provider has required methods
-    assert.isFunction(provider.convert)
-    assert.isFunction(provider.latestRates)
+    // Check that exchange has required methods
+    assert.isFunction(exchange.convert)
+    assert.isFunction(exchange.latestRates)
   })
 
   test('fixer helper should require accessKey', ({ assert }) => {
@@ -96,13 +94,13 @@ test.group('Configuration Helpers', () => {
 
   test('fixer helper should set defaults with accessKey', ({ assert }) => {
     // Create the actual provider instance
-    const provider = exchanges.fixer({ accessKey: 'test-key' })
-    assert.instanceOf(provider, Object)
-    assert.equal(provider.constructor.name, 'FixerProvider')
+    const exchange = exchanges.fixer({ accessKey: 'test-key' })
+    assert.instanceOf(exchange, Object)
+    assert.equal(exchange.constructor.name, 'FixerExchange')
 
-    // Check that provider has required methods
-    assert.isFunction(provider.convert)
-    assert.isFunction(provider.latestRates)
+    // Check that exchange has required methods
+    assert.isFunction(exchange.convert)
+    assert.isFunction(exchange.latestRates)
   })
 
   test('cache helper should accept custom config', ({ assert }) => {

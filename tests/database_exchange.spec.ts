@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { DatabaseProvider } from '../src/exchanges/database_exchange.js'
+import { DatabaseExchange } from '../src/exchanges/database.js'
 
 /**
  * Simple in-memory currency repository for testing
@@ -93,7 +93,7 @@ function createSimpleMockModel() {
   }
 }
 
-test.group('DatabaseProvider Simple Tests', () => {
+test.group('DatabaseExchange Simple Tests', () => {
   test('should initialize with correct configuration', ({ assert }) => {
     const config = {
       model: () => Promise.resolve({ default: createSimpleMockModel() }),
@@ -104,7 +104,7 @@ test.group('DatabaseProvider Simple Tests', () => {
       },
     }
 
-    const provider = new DatabaseProvider(config as any)
+    const provider = new DatabaseExchange(config as any)
     assert.equal(provider.base, 'USD')
   })
 
@@ -118,7 +118,7 @@ test.group('DatabaseProvider Simple Tests', () => {
       },
     }
 
-    const provider = new DatabaseProvider(config as any)
+    const provider = new DatabaseExchange(config as any)
 
     // Wait for model to load
     await new Promise((resolve) => setTimeout(resolve, 10))
@@ -143,7 +143,7 @@ test.group('DatabaseProvider Simple Tests', () => {
       },
     }
 
-    const provider = new DatabaseProvider(config as any)
+    const provider = new DatabaseExchange(config as any)
 
     // Wait for model to load
     await new Promise((resolve) => setTimeout(resolve, 10))
@@ -168,7 +168,7 @@ test.group('DatabaseProvider Simple Tests', () => {
       },
     }
 
-    const provider = new DatabaseProvider(config as any)
+    const provider = new DatabaseExchange(config as any)
 
     // Wait for model to load
     await new Promise((resolve) => setTimeout(resolve, 10))
@@ -193,7 +193,7 @@ test.group('DatabaseProvider Simple Tests', () => {
       },
     }
 
-    const provider = new DatabaseProvider(config as any)
+    const provider = new DatabaseExchange(config as any)
 
     const result = await provider.convert({ amount: 100, from: 'USD', to: 'EUR' })
 

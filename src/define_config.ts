@@ -1,17 +1,17 @@
 import { exchanges as currencyExchanges } from '@mixxtor/currencyx-js'
-import type { DatabaseConfig, ServiceConfigProvider, ProviderFactory } from './types.js'
-import { DatabaseProvider } from './exchanges/database_exchange.js'
+import type { DatabaseConfig, ServiceConfigProvider, ExchangeFactory } from './types.js'
+import { DatabaseExchange } from './exchanges/database.js'
 import { ApplicationService } from '@adonisjs/core/types'
 import { configProvider } from '@adonisjs/core'
 import type { ConfigProvider } from '@adonisjs/core/types'
 
 /**
- * Define database provider configuration
+ * Define database exchange provider configuration
  * Returns a factory function to avoid eager instantiation
  */
-function database(config: DatabaseConfig, app?: ApplicationService): DatabaseProvider {
+function database(config: DatabaseConfig, app?: ApplicationService): DatabaseExchange {
   if (!config.model) {
-    throw new Error('Database provider requires a model')
+    throw new Error('Database exchange requires a model')
   }
 
   const dbConfig = {
@@ -25,11 +25,11 @@ function database(config: DatabaseConfig, app?: ApplicationService): DatabasePro
     cache: config.cache,
   }
 
-  return new DatabaseProvider(dbConfig, app)
+  return new DatabaseExchange(dbConfig, app)
 }
 
 /**
- * Provider configuration helpers
+ * Exchange configuration helpers
  */
 export const exchanges = {
   ...currencyExchanges,
@@ -37,12 +37,12 @@ export const exchanges = {
 } as const
 
 /**
- * Helper to remap known exchange providers to factory functions
+ * Helper to remap known exchange exchanges to factory functions
  */
-type ResolvedConfig<Providers extends Record<string, ProviderFactory>> = {
-  default: keyof Providers
-  providers: {
-    [K in keyof Providers]: Providers[K] extends ServiceConfigProvider<infer A> ? A : Providers[K]
+type ResolvedConfig<Exchanges extends Record<string, ExchangeFactory>> = {
+  default: keyof Exchanges
+  exchanges: {
+    [K in keyof Exchanges]: Exchanges[K] extends ServiceConfigProvider<infer A> ? A : Exchanges[K]
   }
 }
 
@@ -50,30 +50,30 @@ type ResolvedConfig<Providers extends Record<string, ProviderFactory>> = {
  * Define currency configuration with type inference
  * Following AdonisJS pattern for better type safety
  */
-export function defineConfig<Providers extends Record<string, any>>(
-  config: ResolvedConfig<Providers>
-): ConfigProvider<ResolvedConfig<Providers>> {
+export function defineConfig<Exchanges extends Record<string, any>>(
+  config: ResolvedConfig<Exchanges>
+): ConfigProvider<ResolvedConfig<Exchanges>> {
   return configProvider.create(async (_app) => {
-    const { providers, default: defaultExchange } = config
-    const providersNames = Object.keys(providers)
+    const { exchanges: exchangesFactory, default: defaultExchange } = config
+    const exchangesNames = Object.keys(exchanges)
 
     /**
      * Configured exchanges
      */
-    const providerExchanges = {} as Record<string, ProviderFactory>
+    const exchangeExchanges = {} as Record<string, ExchangeFactory>
 
     /**
      * Looping over providers and resolving their config providers
      * to get factory functions
      */
-    for (let providerName of providersNames) {
-      const exchange = providers[providerName]
-      providerExchanges[providerName] = exchange
+    for (let providerName of exchangesNames) {
+      const exchange = exchangesFactory[providerName]
+      exchangeExchanges[providerName] = exchange
     }
 
     return {
       default: defaultExchange,
-      providers: providerExchanges,
-    } as ResolvedConfig<Providers>
+      exchanges: exchangeExchanges,
+    } as ResolvedConfig<Exchanges>
   })
 }

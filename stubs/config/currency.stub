@@ -7,28 +7,28 @@ import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
 const currencyConfig = defineConfig({
   /*
   |--------------------------------------------------------------------------
-  | Default Provider
+  | Default Exchange
   |--------------------------------------------------------------------------
   |
-  | The default currency provider to use. You can switch between providers
+  | The default currency provider to use. You can switch between exchanges
   | at runtime using the currency.use() method.
   |
   */
-  default: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
+  default: env.get('CURRENCY_EXCHANGE', 'database') as 'database' | 'google' | 'fixer',
 
   /*
   |--------------------------------------------------------------------------
-  | Provider Configurations
+  | Exchange Configurations
   |--------------------------------------------------------------------------
   |
-  | Configure each currency provider. You can enable/disable providers by
+  | Configure each currency provider. You can enable/disable exchanges by
   | commenting out their configuration.
   |
   */
-  providers: {
+  exchanges: {
     /*
     |--------------------------------------------------------------------------
-    | Database Provider
+    | Database Exchange
     |--------------------------------------------------------------------------
     |
     | Uses your local database to store and retrieve exchange rates.
@@ -51,10 +51,10 @@ const currencyConfig = defineConfig({
 
     /*
     |--------------------------------------------------------------------------
-    | Google Finance Provider
+    | Google Finance Exchange
     |--------------------------------------------------------------------------
     |
-    | Free provider using Google Finance API. No API key required.
+    | Free exchange using Google Finance API. No API key required.
     | Good for development and testing.
     |
     */
@@ -65,7 +65,7 @@ const currencyConfig = defineConfig({
 
     /*
     |--------------------------------------------------------------------------
-    | Fixer.io Provider
+    | Fixer.io Exchange
     |--------------------------------------------------------------------------
     |
     | Requires API key from fixer.io. Provides accurate and up-to-date

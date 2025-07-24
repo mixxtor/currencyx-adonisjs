@@ -12,7 +12,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 
-export class DatabaseProvider<Model extends LucidModel = LucidModel> extends BaseCurrencyExchange {
+export class DatabaseExchange<Model extends LucidModel = LucidModel> extends BaseCurrencyExchange {
   declare [PROVIDER_CURRENCY_MODEL]: InstanceType<Model>
 
   readonly name = 'database'

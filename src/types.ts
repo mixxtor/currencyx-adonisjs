@@ -87,15 +87,15 @@ export interface CurrencyConfig {
   /**
    * Provider configurations
    */
-  providers: Record<keyof CurrencyExchanges, BaseCurrencyExchange>
+  exchanges: Record<keyof CurrencyExchanges, BaseCurrencyExchange>
 }
 
 /**
  * Infer the providers from the user config
  */
 export type InferExchanges<
-  T extends ConfigProvider<{ providers: Record<string, ProviderFactory> }>,
-> = Awaited<ReturnType<T['resolver']>>['providers']
+  T extends ConfigProvider<{ exchanges: Record<string, ExchangeFactory> }>,
+> = Awaited<ReturnType<T['resolver']>>['exchanges']
 
 /**
  * Currency record interface for database queries
@@ -111,13 +111,13 @@ export interface CurrencyRecord {
  * Representation of a factory function that returns
  * an instance of a driver.
  */
-export type ProviderFactory = () => BaseCurrencyExchange
+export type ExchangeFactory = () => BaseCurrencyExchange
 
 /**
  * Service config provider is an extension of the config
  * provider and accepts the name of the disk service
  */
-export type ServiceConfigProvider<Factory extends ProviderFactory> = {
+export type ServiceConfigProvider<Factory extends ExchangeFactory> = {
   type: 'provider'
   resolver: (name: string, app: ApplicationService) => Promise<Factory>
 }

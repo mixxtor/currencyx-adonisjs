@@ -76,7 +76,7 @@ export async function setupApp(
           config.currency ||
           defineConfig({
             default: 'database',
-            providers: {
+            exchanges: {
               database: {
                 model: () => Promise.resolve({} as any),
               } as any,

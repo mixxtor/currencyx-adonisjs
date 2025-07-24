@@ -22,4 +22,4 @@ export type {
 } from './src/types.js'
 
 // Database Provider
-export { DatabaseProvider } from './src/exchanges/database_exchange.js'
+export { DatabaseExchange } from './src/exchanges/database.js'
