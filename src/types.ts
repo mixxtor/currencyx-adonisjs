@@ -79,9 +79,7 @@ export interface CacheConfig {
 /**
  * Complete currency configuration for AdonisJS
  */
-export interface CurrencyConfig<
-  KnownExchanges extends CurrencyExchanges = Record<string, BaseCurrencyExchange>,
-> {
+export interface CurrencyConfig<KnownExchanges extends CurrencyExchanges = CurrencyExchanges> {
   /**
    * Default provider to use
    */
