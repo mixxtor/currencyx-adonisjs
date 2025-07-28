@@ -1,7 +1,7 @@
 {
   "name": "@mixxtor/currencyx-adonisjs",
   "description": "AdonisJS integration for CurrencyX.js with database exchange provider and cache support",
-  "version": "1.2.2-beta.2",
+  "version": "1.2.2-beta.3",
   "engines": {
     "node": ">=20.6.0"
   },
@@ -87,7 +87,7 @@
     "@adonisjs/lucid": "^21.7.0"
   },
   "dependencies": {
-    "@mixxtor/currencyx-js": "^1.0.15"
+    "@mixxtor/currencyx-js": "^1.0.19"
   },
   "peerDependenciesMeta": {
     "@adonisjs/cache": {

@@ -30,15 +30,15 @@ export default class CurrencyProvider {
    */
   async register() {
     this.app.container.singleton('currency.manager', async () => {
-      const exchangeConfigProvider = this.app.config.get<CurrencyConfig>('currency')
+      const currencyConfigProvider = this.app.config.get<CurrencyConfig>('currency')
 
-      if (!exchangeConfigProvider) {
+      if (!currencyConfigProvider) {
         throw new RuntimeException(
           'Currency configuration not found. Make sure you have a "config/currency.ts" file with "defineConfig" export'
         )
       }
 
-      const config = await configProvider.resolve<CurrencyConfig>(this.app, exchangeConfigProvider)
+      const config = await configProvider.resolve<CurrencyConfig>(this.app, currencyConfigProvider)
       if (!config) {
         throw new RuntimeException(
           'Invalid "config/currency.ts" file. Make sure you are using the "defineConfig" method'
