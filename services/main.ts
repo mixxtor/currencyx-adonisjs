@@ -9,6 +9,7 @@
 
 import app from '@adonisjs/core/services/app'
 import CurrencyService from '@mixxtor/currencyx-js'
+import type { CurrencyExchanges } from '../src/types.js'
 
 /**
  * Currency service with full type inference
@@ -26,7 +27,9 @@ import CurrencyService from '@mixxtor/currencyx-js'
  * ```
  */
 
-let currency: CurrencyService
+let currency: CurrencyService<
+  Record<keyof CurrencyExchanges, CurrencyExchanges[keyof CurrencyExchanges]>
+>
 
 await app.booted(async () => {
   currency = await app.container.make('currency.manager')
