@@ -1,17 +1,14 @@
-/**
- * Types for CurrencyX AdonisJS integration
- */
-
 import { CacheService } from '@adonisjs/cache/types'
 import { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
 import { LucidModel } from '@adonisjs/lucid/types/model'
-import { type CurrencyExchanges, BaseCurrencyExchange } from '@mixxtor/currencyx-js'
+import BaseCurrencyService, { BaseCurrencyExchange, createCurrency } from '@mixxtor/currencyx-js'
+import type { CurrencyExchanges } from '@mixxtor/currencyx-js'
 
 /**
  * A list of known currency providers inferred from the user config
  * This interface must be extended in user-land
  */
-export { CurrencyExchanges }
+export type { CurrencyExchanges } from '@mixxtor/currencyx-js'
 
 /**
  * Database configuration for currency provider
@@ -101,6 +98,10 @@ export type InferExchanges<
   T extends ConfigProvider<{ exchanges: Record<string, ExchangeFactory> }>,
 > = Awaited<ReturnType<T['resolver']>>['exchanges']
 
+// export type InferExchanges<T extends { exchanges: Record<string, BaseCurrencyExchange> }> = {
+//   [K in keyof T['exchanges']]: any
+// }
+
 /**
  * Currency record interface for database queries
  */
@@ -115,7 +116,17 @@ export interface CurrencyRecord {
  * Representation of a factory function that returns
  * an instance of a driver.
  */
-export type ExchangeFactory = () => BaseCurrencyExchange
+export type ExchangeFactory = BaseCurrencyExchange
+
+/**
+ * Main Currency Service Implementation
+ */
+export interface CurrencyService
+  extends BaseCurrencyService<
+    CurrencyExchanges extends Record<string, ReturnType<typeof createCurrency>>
+      ? CurrencyExchanges
+      : never
+  > {}
 
 /**
  * Service config provider is an extension of the config
