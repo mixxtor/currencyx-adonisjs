@@ -44,6 +44,18 @@ export interface DatabaseConfig<
      * @default 'exchange_rate'
      */
     rate: string
+
+    /**
+     * Created at column
+     * @default 'created_at'
+     */
+    created_at?: string
+
+    /**
+     * Updated at column
+     * @default 'updated_at'
+     */
+    updated_at?: string
   }
 
   /**

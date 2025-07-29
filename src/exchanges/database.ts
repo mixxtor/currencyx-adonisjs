@@ -30,6 +30,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
 
     this.config = config
     this.columns = {
+      ...config.columns,
       code: config.columns?.code || 'code',
       rate: config.columns?.rate || 'exchange_rate',
     }
@@ -197,7 +198,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     await this.#ensureCacheSetup()
 
     const Model = await this.getModel()
-    const query = Model.query().select(Object.keys(this.columns))
+    const query = Model.query().select(Object.values(this.columns))
 
     if (!refresh || !this.cache || !this.cacheConfig) {
       return await query
@@ -217,25 +218,38 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     params?: ExchangeRatesParams & { cache?: boolean }
   ): Promise<ExchangeRatesResult> {
     const { base = this.base, code: currencyCodes, cache } = params || {}
-    const result = {
+    const result: ExchangeRatesResult = {
       success: false,
       timestamp: new Date().getTime(),
       date: new Date().toISOString(),
       base: base,
-      rates: {} as Record<string, number>,
-      error: undefined as { info: string; type: string } | undefined,
+      rates: {} as Record<CurrencyCode, number>,
+      error: undefined,
     }
 
     try {
+      let latestDate: Date | undefined
       const currencies = await this.#currencyList(!cache)
+
       for (const record of currencies ?? []) {
         const code = record[this.columns.code as keyof typeof record] as string
         const rate = record[this.columns.rate as keyof typeof record] as number
+        const updatedAt = record[this.columns.updated_at as keyof typeof record] as string
+        const updatedAtDate = updatedAt ? new Date(updatedAt) : undefined
         if (!code || !currencyCodes?.length || currencyCodes?.includes(code)) {
           result.rates[code] = rate
+
+          // Update latest date
+          if (!latestDate || (updatedAtDate && updatedAtDate > latestDate)) {
+            latestDate = updatedAtDate
+          }
         }
       }
+
       result.success = true
+      if (latestDate) {
+        result.date = latestDate.toISOString()
+      }
     } catch (error: any) {
       result.error = {
         info: error.message,
@@ -263,6 +277,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
    */
   async #getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
     const Model = await this.getModel()
+    const query = Model.query()
 
     // Handle base currency conversions
     if (from === this.base && to === this.base) {
@@ -271,10 +286,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
 
     if (from === this.base) {
       // Converting from base currency to target currency
-      const toRate = (await Model.query()
-        .where(this.columns.code, to)
-        .first()) as CurrencyRecord | null
-
+      const toRate: CurrencyRecord | null = await query.where(this.columns.code, to).first()
       if (!toRate || !toRate[this.columns.rate]) {
         throw new Error(`Exchange rate not found for currency: ${to}`)
       }
@@ -284,10 +296,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
 
     if (to === this.base) {
       // Converting from target currency to base currency
-      const fromRate = (await Model.query()
-        .where(this.columns.code, from)
-        .first()) as CurrencyRecord | null
-
+      const fromRate: CurrencyRecord | null = await query.where(this.columns.code, from).first()
       if (!fromRate || !fromRate[this.columns.rate]) {
         throw new Error(`Exchange rate not found for currency: ${from}`)
       }
@@ -296,13 +305,8 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     }
 
     // Cross rate conversion (neither is base currency)
-    const fromRate = (await Model.query()
-      .where(this.columns.code, from)
-      .first()) as CurrencyRecord | null
-
-    const toRate = (await Model.query()
-      .where(this.columns.code, to)
-      .first()) as CurrencyRecord | null
+    const fromRate: CurrencyRecord | null = await query.where(this.columns.code, from).first()
+    const toRate: CurrencyRecord | null = await query.where(this.columns.code, to).first()
 
     if (!fromRate || !fromRate[this.columns.rate]) {
       throw new Error(`Exchange rate not found for currency: ${from}`)
