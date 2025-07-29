@@ -110,7 +110,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   async convert(params: ConvertParams): Promise<ConversionResult> {
     const { amount, from, to } = params
     const result: ConversionResult = {
-      success: true,
+      success: false,
       query: { from, to, amount },
       info: { timestamp: Date.now(), rate: 1 },
       date: new Date().toISOString(),
@@ -118,6 +118,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     }
 
     if (from === to) {
+      result.success = true
       return result
     }
 
@@ -125,6 +126,9 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
       const currencies = await this.#currencyList()
       const fromCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === from)
       const toCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === to)
+      const updatedAt = currencies?.[0]?.[
+        this.columns.updated_at as keyof (typeof currencies)[number]
+      ] as string
 
       const fromRate = fromCurrency?.[this.columns.rate as keyof typeof fromCurrency] as number
       const toRate = toCurrency?.[this.columns.rate as keyof typeof toCurrency] as number
@@ -135,7 +139,8 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
         result.success = true
         result.query = { from, to, amount }
         result.info.rate = convertRate
-        result.date = new Date().toISOString()
+        result.info.timestamp = new Date(updatedAt).getTime()
+        result.date = new Date(updatedAt).toISOString()
         result.result = convertAmount
       }
 
@@ -181,7 +186,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
     const result: ExchangeRatesResult = {
       success: false,
       timestamp: new Date().getTime(),
-      date: undefined as any,
+      date: new Date().toISOString(),
       base: base,
       rates: {} as Record<CurrencyCode, number>,
       error: undefined,
@@ -200,6 +205,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
           // Update latest date
           if (updatedAtDate && updatedAtDate > (result.date as unknown as Date)) {
             result.date = updatedAtDate?.toISOString()
+            result.timestamp = updatedAtDate.getTime()
           }
         }
       }
