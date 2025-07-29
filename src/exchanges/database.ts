@@ -216,7 +216,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   async latestRates(
     params?: ExchangeRatesParams & { cache?: boolean }
   ): Promise<ExchangeRatesResult> {
-    const { base = this.base, symbols: currencyCodes, cache } = params || {}
+    const { base = this.base, code: currencyCodes, cache } = params || {}
     const result = {
       success: false,
       timestamp: new Date().getTime(),
