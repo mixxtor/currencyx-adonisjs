@@ -173,7 +173,7 @@ test.group('DatabaseExchange Simple Tests', () => {
     // Wait for model to load
     await new Promise((resolve) => setTimeout(resolve, 10))
 
-    const result = await provider.latestRates({ base: 'USD', code: ['USD', 'EUR'] })
+    const result = await provider.latestRates({ base: 'USD', codes: ['USD', 'EUR'] })
 
     assert.equal(result.success, true)
     assert.equal(result.base, 'USD')

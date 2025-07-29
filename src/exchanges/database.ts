@@ -6,7 +6,7 @@ import type {
   ExchangeRatesParams,
 } from '@mixxtor/currencyx-js'
 import { BaseCurrencyExchange } from '@mixxtor/currencyx-js'
-import type { DatabaseConfig, CurrencyRecord, CacheConfig } from '../types.js'
+import type { DatabaseConfig, CacheConfig } from '../types.js'
 import type { CacheService } from '@adonisjs/cache/types'
 import { PROVIDER_CURRENCY_MODEL } from '../symbols.js'
 import type { LucidModel } from '@adonisjs/lucid/types/model'
@@ -105,81 +105,42 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   }
 
   /**
-   * Generate cache key
-   */
-  #getCacheKey(key: string): string {
-    const prefix = this.cacheConfig?.prefix || 'currency'
-    return `${prefix}:${key}`
-  }
-
-  /**
-   * Get data from cache
-   */
-  async #getFromCache<T>(key: string): Promise<T | null> {
-    await this.#ensureCacheSetup()
-
-    if (!this.cacheConfig || !this.cache) return null
-
-    try {
-      const cacheKey = this.#getCacheKey(key)
-      return await this.cache.get({ key: cacheKey })
-    } catch (error) {
-      console.error(error)
-      return null
-    }
-  }
-
-  /**
-   * Set data to cache
-   */
-  private async setToCache<T>(key: string, value: T): Promise<void> {
-    await this.#ensureCacheSetup()
-
-    if (!this.cacheConfig || !this.cache) return
-
-    try {
-      const cacheKey = this.#getCacheKey(key)
-      await this.cache.set({ key: cacheKey, value, ttl: this.cacheConfig.ttl })
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  /**
    * Convert currency using database rates
    */
   async convert(params: ConvertParams): Promise<ConversionResult> {
     const { amount, from, to } = params
+    const result: ConversionResult = {
+      success: true,
+      query: { from, to, amount },
+      info: { timestamp: Date.now(), rate: 1 },
+      date: new Date().toISOString(),
+      result: amount,
+    }
+
     if (from === to) {
-      return {
-        success: true,
-        query: { from, to, amount },
-        info: { timestamp: Date.now(), rate: 1 },
-        date: new Date().toISOString(),
-        result: amount,
-      }
+      return result
     }
 
     try {
-      // Try cache first
-      const cacheKey = `rate:${from}:${to}`
-      let rate = await this.#getFromCache<number>(cacheKey)
+      const currencies = await this.#currencyList()
+      const fromCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === from)
+      const toCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === to)
 
-      if (!rate) {
-        rate = await this.#getExchangeRate(from, to)
-        await this.setToCache(cacheKey, rate)
+      const fromRate = fromCurrency?.[this.columns.rate as keyof typeof fromCurrency] as number
+      const toRate = toCurrency?.[this.columns.rate as keyof typeof toCurrency] as number
+      if (fromRate && toRate) {
+        // Conversion formula: amount * (1/fromCurrencyRate) * toCurrencyRate
+        const convertRate = (1 / fromRate) * toRate
+        const convertAmount = amount * convertRate
+        result.success = true
+        result.query = { from, to, amount }
+        result.info.rate = convertRate
+        result.date = new Date().toISOString()
+        result.result = convertAmount
       }
 
-      const result = amount * rate
-
-      return {
-        success: true,
-        query: { from, to, amount },
-        info: { timestamp: Date.now(), rate },
-        date: new Date().toISOString(),
-        result,
-      }
-    } catch (error: any) {
+      return result
+    } catch (error) {
       return {
         success: false,
         query: { from, to, amount },
@@ -187,7 +148,6 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
         date: new Date().toISOString(),
         error: {
           info: error.message,
-          type: 'database_error',
         },
       }
     }
@@ -217,20 +177,18 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   async latestRates(
     params?: ExchangeRatesParams & { cache?: boolean }
   ): Promise<ExchangeRatesResult> {
-    const { base = this.base, code: currencyCodes, cache } = params || {}
+    const { base = this.base, codes: currencyCodes, cache } = params || {}
     const result: ExchangeRatesResult = {
       success: false,
       timestamp: new Date().getTime(),
-      date: new Date().toISOString(),
+      date: undefined as any,
       base: base,
       rates: {} as Record<CurrencyCode, number>,
       error: undefined,
     }
 
     try {
-      let latestDate: Date | undefined
       const currencies = await this.#currencyList(!cache)
-
       for (const record of currencies ?? []) {
         const code = record[this.columns.code as keyof typeof record] as string
         const rate = record[this.columns.rate as keyof typeof record] as number
@@ -240,17 +198,14 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
           result.rates[code] = rate
 
           // Update latest date
-          if (!latestDate || (updatedAtDate && updatedAtDate > latestDate)) {
-            latestDate = updatedAtDate
+          if (updatedAtDate && updatedAtDate > (result.date as unknown as Date)) {
+            result.date = updatedAtDate?.toISOString()
           }
         }
       }
 
       result.success = true
-      if (latestDate) {
-        result.date = latestDate.toISOString()
-      }
-    } catch (error: any) {
+    } catch (error) {
       result.error = {
         info: error.message,
         type: 'database_error',
@@ -265,65 +220,18 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
    */
   async getConvertRate(from: CurrencyCode, to: CurrencyCode): Promise<number | undefined> {
     try {
-      return await this.#getExchangeRate(from, to)
+      const currencies = await this.#currencyList()
+      const fromCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === from)
+      const toCurrency = currencies?.find((c) => c[this.columns.code as keyof typeof c] === to)
+
+      const fromRate = fromCurrency?.[this.columns.rate as keyof typeof fromCurrency] as number
+      const toRate = toCurrency?.[this.columns.rate as keyof typeof toCurrency] as number
+      if (fromRate && toRate) {
+        const convertRate = (1 / fromRate) * toRate
+        return convertRate
+      }
     } catch {
       return undefined
     }
-  }
-
-  /**
-   * Get exchange rate between two currencies
-   * Logic: all rates are stored relative to base currency (e.g., USD)
-   */
-  async #getExchangeRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
-    const Model = await this.getModel()
-    const query = Model.query()
-
-    // Handle base currency conversions
-    if (from === this.base && to === this.base) {
-      return 1.0
-    }
-
-    if (from === this.base) {
-      // Converting from base currency to target currency
-      const toRate: CurrencyRecord | null = await query.where(this.columns.code, to).first()
-      if (!toRate || !toRate[this.columns.rate]) {
-        throw new Error(`Exchange rate not found for currency: ${to}`)
-      }
-
-      return Number(toRate[this.columns.rate])
-    }
-
-    if (to === this.base) {
-      // Converting from target currency to base currency
-      const fromRate: CurrencyRecord | null = await query.where(this.columns.code, from).first()
-      if (!fromRate || !fromRate[this.columns.rate]) {
-        throw new Error(`Exchange rate not found for currency: ${from}`)
-      }
-
-      return 1 / Number(fromRate[this.columns.rate])
-    }
-
-    // Cross rate conversion (neither is base currency)
-    const fromRate: CurrencyRecord | null = await query.where(this.columns.code, from).first()
-    const toRate: CurrencyRecord | null = await query.where(this.columns.code, to).first()
-
-    if (!fromRate || !fromRate[this.columns.rate]) {
-      throw new Error(`Exchange rate not found for currency: ${from}`)
-    }
-
-    if (!toRate || !toRate[this.columns.rate]) {
-      throw new Error(`Exchange rate not found for currency: ${to}`)
-    }
-
-    // Calculate cross rate: to_rate / from_rate
-    const fromRateValue = Number(fromRate[this.columns.rate])
-    const toRateValue = Number(toRate[this.columns.rate])
-
-    if (fromRateValue === 0) {
-      throw new Error(`Invalid exchange rate for currency: ${from}`)
-    }
-
-    return toRateValue / fromRateValue
   }
 }
