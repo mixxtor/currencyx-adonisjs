@@ -217,11 +217,11 @@ export default class ExchangeController {
   }
 
   async getRates({ request, response }: HttpContext) {
-    const { base, symbols } = request.only(['base', 'symbols'])
+    const { base, codes } = request.only(['base', 'codes'])
 
     const result = await this.currency.getExchangeRates({
       base,
-      symbols: symbols.split(','),
+      codes: codes.split(','),
     })
 
     if (result.success) {
@@ -324,7 +324,7 @@ const result = await currency.convert({
 // Get exchange rates
 const rates = await currency.getExchangeRates({
   base: 'USD',
-  symbols: ['EUR', 'GBP', 'JPY'],
+  codes: ['EUR', 'GBP', 'JPY'],
 })
 ```
 

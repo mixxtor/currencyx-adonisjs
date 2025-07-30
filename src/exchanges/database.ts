@@ -19,7 +19,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
   protected model?: Model
   private columns: NonNullable<DatabaseConfig<Model>['columns']>
   private configModel?: DatabaseConfig<Model>['model']
-  private cacheService?: CacheConfig['service']
+  private configCacheService?: CacheConfig['service']
   private cache?: CacheService
   private cacheConfig?: CacheConfig
   private cacheSetupPromise?: Promise<void>
@@ -37,6 +37,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
 
     this.base = config.base || 'USD'
     this.configModel = config.model
+    this.configCacheService = config.cache ? config.cache.service : undefined
   }
 
   /**
@@ -62,7 +63,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
    * for further operations.
    */
   protected async getCacheService() {
-    if (!this.cacheService) {
+    if (!this.configCacheService) {
       throw new Error('Currency cache not configured')
     }
 
@@ -70,7 +71,7 @@ export class DatabaseExchange<Model extends LucidModel = LucidModel> extends Bas
       return this.cache
     }
 
-    const importedCache = await this.cacheService()
+    const importedCache = await this.configCacheService()
     this.cache = 'default' in importedCache ? importedCache.default : importedCache
     return this.cache
   }
