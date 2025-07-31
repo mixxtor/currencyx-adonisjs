@@ -87,7 +87,7 @@
     "@adonisjs/lucid": "^21.7.0"
   },
   "dependencies": {
-    "@mixxtor/currencyx-js": "^2.0.0"
+    "@mixxtor/currencyx-js": "^2.1.0"
   },
   "peerDependenciesMeta": {
     "@adonisjs/cache": {
