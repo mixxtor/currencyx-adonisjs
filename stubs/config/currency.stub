@@ -2,7 +2,7 @@
   exports({ to: app.configPath('currency.ts') })
 }}}
 import env from '#start/env'
-import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
+import { defineConfig, exchanges } from '@mixxtor/currencyx-adonisjs'
 
 const currencyConfig = defineConfig({
   /*
@@ -14,7 +14,7 @@ const currencyConfig = defineConfig({
   | at runtime using the currency.use() method.
   |
   */
-  default: env.get('CURRENCY_EXCHANGE', 'database') as 'database' | 'google' | 'fixer',
+  default: env.get('CURRENCY_EXCHANGE_PROVIDER', 'database') as typeof currencyConfig,
 
   /*
   |--------------------------------------------------------------------------
@@ -39,14 +39,15 @@ const currencyConfig = defineConfig({
       model: () => import('#models/currency'),
       base: 'USD',    // Base currency for all exchange rates
       columns: {
-        code: 'code',           // Currency code column (USD, EUR, etc.)
-        rate: 'exchange_rate',  // Exchange rate column (relative to base currency)
+        code: 'code',             // Currency code column (USD, EUR, etc.)
+        rate: 'exchange_rate',    // Exchange rate column (relative to base currency)
+        updated_at: 'updated_at', // Updated at column
       },
-      // cache: cache({
-      //   enabled: true,          // Enable/disable caching
-      //   ttl: 3600,              // 1 hour
-      //   prefix: 'currency'      // Cache key prefix
-      // })
+      cache: {
+        service: () => import('@adonisjs/cache/services/main'),
+        ttl: '1h',          // Number of time to live in milliseconds, or a human-readable string
+        prefix: 'currency', // Cache key prefix
+      },
     }),
 
     /*
@@ -60,7 +61,7 @@ const currencyConfig = defineConfig({
     */
     google: exchanges.google({
       base: env.get('CURRENCY_BASE', 'USD'),
-      timeout: 5000
+      timeout: 5000,
     }),
 
     /*
@@ -72,14 +73,25 @@ const currencyConfig = defineConfig({
     | exchange rates. Uncomment and configure if you have an API key.
     |
     */
-    // fixer: exchanges.fixer({
-    //   accessKey: env.get('FIXER_API_KEY'),
-    //   base: env.get('CURRENCY_BASE', 'EUR'),
-    //   timeout: 10000
-    // })
+    fixer: exchanges.fixer({
+      accessKey: env.get('FIXER_API_KEY', 'your_api_key'),
+      base: env.get('CURRENCY_BASE', 'EUR'),
+      timeout: 10000,
+    }),
   },
-
-
 })
 
 export default currencyConfig
+
+/*
+|--------------------------------------------------------------------------
+| Type Augmentation
+|--------------------------------------------------------------------------
+|
+| Augment the container types to include the currency service.
+| This provides better IntelliSense and type safety.
+|
+*/
+declare module '@mixxtor/currencyx-adonisjs/types' {
+  interface CurrencyExchanges extends InferExchanges<typeof currencyConfig> {}
+}
