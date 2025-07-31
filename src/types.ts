@@ -1,4 +1,4 @@
-import { CacheService } from '@adonisjs/cache/types'
+import { CacheOptions, CacheService } from '@adonisjs/cache/types'
 import { ApplicationService, ConfigProvider } from '@adonisjs/core/types'
 import { LucidModel } from '@adonisjs/lucid/types/model'
 import BaseCurrencyService, { BaseCurrencyExchange, createCurrency } from '@mixxtor/currencyx-js'
@@ -68,24 +68,12 @@ export interface DatabaseConfig<
 /**
  * Cache configuration for database provider
  */
-export interface CacheConfig {
+export interface CacheConfig extends CacheOptions {
   /**
    * The AdonisJS cache service instance
    * @requires @adonisjs/cache
    */
   service: () => Promise<{ default: CacheService }> | CacheService
-
-  /**
-   * Cache TTL in seconds
-   * @default 3600 (1 hour)
-   */
-  ttl?: number
-
-  /**
-   * Cache key prefix
-   * @default 'currency'
-   */
-  prefix?: string
 }
 
 /**
