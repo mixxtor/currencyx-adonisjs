@@ -10,8 +10,8 @@
 ## ✨ Features
 
 - 🚀 **AdonisJS Integration** - Seamless integration with AdonisJS v6 framework
-- 💾 **Database Provider** - Store exchange rates in your database using Lucid ORM
-- 🔄 **Multiple Providers** - Google Finance, Fixer.io, and database providers
+- 💾 **Database Exchange** - Store exchange rates in your database using Lucid ORM
+- 🔄 **Multiple Exchanges** - Google Finance, Fixer.io, and database exchanges
 - 📦 **Cache Support** - Built-in caching with AdonisJS Cache
 - 🎯 **Type Safety** - Full TypeScript support with intelligent inference
 - 🔧 **Easy Setup** - Simple configuration and installation
@@ -43,25 +43,25 @@ Edit `config/currency.ts`:
 
 ```typescript
 import env from '#start/env'
-import { defineConfig, exchanges, cache } from '@mixxtor/currencyx-adonisjs'
+import { defineConfig, exchanges } from '@mixxtor/currencyx-adonisjs'
 
 export default defineConfig({
   /*
   |--------------------------------------------------------------------------
-  | Default Provider
+  | Default Exchange
   |--------------------------------------------------------------------------
   */
   default: env.get('CURRENCY_PROVIDER', 'database') as 'database' | 'google' | 'fixer',
 
   /*
   |--------------------------------------------------------------------------
-  | Provider Configurations
+  | Exchange Configurations
   |--------------------------------------------------------------------------
   */
-  providers: {
+  exchanges: {
     /*
     |--------------------------------------------------------------------------
-    | Database Provider
+    | Database Exchange
     |--------------------------------------------------------------------------
     | Uses your local database to store and retrieve exchange rates.
     */
@@ -72,18 +72,19 @@ export default defineConfig({
         code: 'code',
         rate: 'exchange_rate',
       },
-      // cache: cache({
-      //   app: application,
-      //   ttl: 3600,
-      //   prefix: 'currency'
-      // })
+      // Cache configuration (optional)
+      // cache: {
+      //   service: () => import('@adonisjs/cache/services/main'),
+      //   ttl: '1h',          // Cache TTL (human readable or milliseconds)
+      //   keyPrefix: 'currency' // Cache key prefix
+      // }
     }),
 
     /*
     |--------------------------------------------------------------------------
-    | Google Finance Provider
+    | Google Finance Exchange
     |--------------------------------------------------------------------------
-    | Free provider using Google Finance API. No API key required.
+    | Free exchange using Google Finance API. No API key required.
     */
     google: exchanges.google({
       base: env.get('CURRENCY_BASE', 'USD'),
@@ -92,13 +93,13 @@ export default defineConfig({
 
     /*
     |--------------------------------------------------------------------------
-    | Fixer.io Provider
+    | Fixer.io Exchange
     |--------------------------------------------------------------------------
     | Requires API key from fixer.io.
     */
     // fixer: exchanges.fixer({
     //   accessKey: env.get('FIXER_API_KEY'),
-    //   base: env.get('CURRENCY_BASE', 'EUR'),
+    //   base: env.get('CURRENCY_BASE', 'USD'),
     //   timeout: 10000
     // })
   }
@@ -239,10 +240,10 @@ export default class ExchangeController {
 }
 ```
 
-### Provider Switching
+### Exchange Switching
 
 ```typescript
-// Switch to different provider at runtime
+// Switch to different exchange at runtime
 await this.currency.use('google')
 const googleResult = await this.currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 
@@ -253,7 +254,7 @@ await this.currency.use('database')
 const dbResult = await this.currency.convert({ amount: 100, from: 'USD', to: 'EUR' })
 ```
 
-### Database Provider Usage
+### Database Exchange Usage
 
 Seed your database with exchange rates:
 
@@ -299,11 +300,11 @@ database: exchanges.database({
     code: 'code',
     rate: 'exchange_rate',
   },
-  cache: cache({
-    app: application,                       // AdonisJS application instance
-    ttl: 3600,                              // 1 hour
-    prefix: 'currency'                      // Cache key prefix
-  })
+  cache: {
+    service: () => import('@adonisjs/cache/services/main'), // AdonisJS cache service
+    ttl: '1h',                                              // Cache TTL (human readable or milliseconds)
+    keyPrefix: 'currency'                                   // Cache key prefix
+  }
 })
 ```
 
@@ -331,35 +332,48 @@ const rates = await currency.getExchangeRates({
 ### Convenience Methods
 
 ```typescript
-// Shorthand methods
-const result = await currency.convertAmount(100, 'USD', 'EUR')
-const rates = await currency.getRates('USD', ['EUR', 'GBP'])
+// Shorthand for getting rates
+const rates = await currency.latestRates({ base: 'USD', codes: ['EUR', 'GBP'] })
+
+// Get exchange rates with same API as core library
+const rates = await currency.getExchangeRates({ base: 'USD', codes: ['EUR', 'GBP'] })
 ```
 
-### Provider Management
+### Exchange Management
 
 ```typescript
-// Switch providers
+// Switch exchanges
 currency.use('google')
 
-// Get current provider
-const current = currency.getCurrentProvider()
+// Get current exchange
+const current = currency.getCurrentExchange()
 
-// List available providers
-const providers = currency.getAvailableProviders()
+// List available exchanges
+const exchanges = currency.getAvailableExchanges()
 ```
 
 ### Utility Methods
 
 ```typescript
-// Format currency
-const formatted = currency.formatCurrency(1234.56, 'USD', 'en-US')
+// Format currency (object parameters)
+const formatted = currency.formatCurrency({ amount: 1234.56, code: 'USD', locale: 'en-US' })
 
 // Round values
-const rounded = currency.round(123.456789, 2)
+const rounded = currency.round(123.456789, { precision: 2, direction: 'up' })
 
 // Get supported currencies
 const currencies = await currency.getSupportedCurrencies()
+
+// Currency information utilities
+const allCurrencies = currency.getList()
+const usdInfo = currency.getByCode('USD')
+const dollarCurrencies = currency.getBySymbol('$')
+const usCurrency = currency.getByCountry('US')
+const euroCurrencies = currency.filterByName('Euro')
+const usCurrencies = currency.filterByCountry('US')
+
+// Round money according to currency rules
+const rounded = currency.roundMoney(123.456, 'USD')
 ```
 
 ## ⚙️ Configuration
@@ -369,19 +383,19 @@ const currencies = await currency.getSupportedCurrencies()
 Add these to your `.env` file:
 
 ```env
-# Default provider
+# Default exchange
 CURRENCY_PROVIDER=database
 
 # Base currency
 CURRENCY_BASE=USD
 
-# Fixer.io API key (if using fixer provider)
+# Fixer.io API key (if using fixer exchange)
 FIXER_API_KEY=your_api_key_here
 ```
 
-### Provider Configuration
+### Exchange Configuration
 
-#### Database Provider
+#### Database Exchange
 
 ```typescript
 database: exchanges.database({
@@ -391,15 +405,15 @@ database: exchanges.database({
     code: 'code',                           // Currency code column
     rate: 'exchange_rate',                  // Exchange rate column
   },
-  cache: cache({                            // Optional caching
-    app: application,                       // AdonisJS application instance
-    ttl: 3600,
-    prefix: 'currency'
-  })
+  cache: {                                  // Optional caching
+    service: () => import('@adonisjs/cache/services/main'), // AdonisJS cache service
+    ttl: '1h',                              // Cache TTL (human readable or milliseconds)
+    keyPrefix: 'currency'                   // Cache key prefix
+  }
 })
 ```
 
-#### Google Finance Provider
+#### Google Finance Exchange
 
 ```typescript
 google: exchanges.google({
@@ -408,12 +422,12 @@ google: exchanges.google({
 })
 ```
 
-#### Fixer.io Provider
+#### Fixer.io Exchange
 
 ```typescript
 fixer: exchanges.fixer({
   accessKey: 'your-api-key',  // Required
-  base: 'EUR',                // Base currency
+  base: 'USD',                // Base currency (default: 'USD' for this library)
   timeout: 10000,             // Request timeout (optional)
 })
 ```
