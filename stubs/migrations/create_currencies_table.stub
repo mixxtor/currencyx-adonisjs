@@ -2,49 +2,28 @@
 {{{
   exports({ to: app.migrationsPath(migrationFileName) })
 }}}
+import Currency from '#models/currency'
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
+
 export default class extends BaseSchema {
-  protected tableName = 'currencies'
+  protected tableName = Currency.table
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-
-      /**
-       * Currency code (e.g., USD, EUR, GBP)
-       */
-      table.string('code', 3).notNullable().unique()
-
-      /**
-       * Currency name (e.g., US Dollar, Euro)
-       */
-      table.string('name').notNullable()
-
-      /**
-       * Currency symbol (e.g., $, €, £)
-       */
-      table.string('symbol').notNullable()
-
-      /**
-       * Countries using this currency (JSON array)
-       */
-      table.json('countries').nullable()
+      table.string('code', 3).notNullable().unique().comment('The currency code in ISO 4217. E.g., USD, EUR')
+      table.string('name').notNullable().comment('The currency name. E.g., US Dollar, Euro')
+      table.string('symbol').notNullable().comment('The currency symbol. E.g., $, €, £')
+      table.jsonb('countries').nullable().comment('The countries that support this currency')
 
       /**
        * Exchange rate relative to base currency (e.g., USD)
        * For USD itself, rate should be 1.0
        */
-      table.decimal('exchange_rate', 15, 8).notNullable()
+      table.decimal('exchange_rate', 15, 8).notNullable().comment('The currency exchange rate with should be respect to USD')
 
-      /**
-       * Currency status (active/inactive)
-       */
-      table.boolean('status').defaultTo(true)
-
-      /**
-       * Timestamps
-       */
+      table.boolean('status').defaultTo(true).comment('The status of the currency')
       table.timestamp('created_at')
       table.timestamp('updated_at')
 

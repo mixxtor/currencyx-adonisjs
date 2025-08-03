@@ -27,7 +27,7 @@ export async function configure(command: ConfigureCommand) {
    * Register provider
    */
   await codemods.updateRcFile((rcFile) => {
-    rcFile.addProvider('@mixxtor/currencyx-adonisjs/providers/currency_provider')
+    rcFile.addProvider('@mixxtor/currencyx-adonisjs/currency_provider')
   })
 
   /**
