@@ -13,6 +13,7 @@ export { defineConfig, exchanges } from './src/define_config.js'
 
 // Types
 export type {
+  CurrencyCode,
   DatabaseConfig,
   CacheConfig,
   CurrencyConfig,

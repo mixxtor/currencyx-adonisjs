@@ -4,11 +4,7 @@ import { LucidModel } from '@adonisjs/lucid/types/model'
 import BaseCurrencyService, { BaseCurrencyExchange, createCurrency } from '@mixxtor/currencyx-js'
 import type { CurrencyExchanges } from '@mixxtor/currencyx-js'
 
-/**
- * A list of known currency providers inferred from the user config
- * This interface must be extended in user-land
- */
-export type { CurrencyExchanges } from '@mixxtor/currencyx-js'
+export type { CurrencyExchanges, CurrencyCode } from '@mixxtor/currencyx-js'
 
 /**
  * Database configuration for currency provider
